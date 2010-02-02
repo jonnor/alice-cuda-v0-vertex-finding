@@ -4,34 +4,36 @@
 #include <math.h>
 #include <float.h>
 
+#include <cuda.h>
+
 // http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliVParticle.h.html#18
-const double kB2C=-0.299792458e-3;
-const double kAlmost0=FLT_MIN;
+const float kB2C=-0.299792458e-3;
+const float kAlmost0=FLT_MIN;
 
 // http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliExternalTrackParam.h.html#178
 // We could also just use a simple array instead of the struct
-// double trackparam[7]
+// float trackparam[7]
 // When we start caring about multiple tracks, they can either be represented by
 // - An array of structs/arrays
 // - An array where the params are separated by a rowstride equal to number of tracks
 // The latter might perform better, but be less readable
 struct trackparam
 {
-	double fP[5];
-	double fAlpha;
-	double fX;
+	float fP[5];
+	float fAlpha;
+	float fX;
 };
 
 // http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliExternalTrackParam.h.html#XB.FNC
-double GetC(struct trackparam *tp, double b) {
+__device__ float GetC(struct trackparam *tp, float b) {
     return tp->fP[4]*b*kB2C;
 }
 
 
 // http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliExternalTrackParam.cxx.html#RJz9EE
-void GetHelixParameters(struct trackparam *tp, double hlx[6], double b) {
+__global__ void GetHelixParameters(struct trackparam *tp, float hlx[6], float b) {
 
-    double cs=cos(tp->fAlpha), sn=sin(tp->fAlpha); 
+    float cs=cos(tp->fAlpha), sn=sin(tp->fAlpha); 
 
     hlx[0]=tp->fP[0]; hlx[1]=tp->fP[1]; hlx[2]=tp->fP[2]; hlx[3]=tp->fP[3];
 
@@ -45,14 +47,14 @@ void GetHelixParameters(struct trackparam *tp, double hlx[6], double b) {
 
 
 // http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliExternalTrackParam.cxx.html#RJz9EE
-static void Evaluate(const double *h, double t,
-                     double r[3],  //radius vector
-                     double g[3],  //first defivatives
-                     double gg[3]) //second derivatives
+static void Evaluate(const float *h, float t,
+                     float r[3],  //radius vector
+                     float g[3],  //first defivatives
+                     float gg[3]) //second derivatives
 {
 
-  double phase=h[4]*t+h[2];
-  double sn=sin(phase), cs=cos(phase);
+  float phase=h[4]*t+h[2];
+  float sn=sin(phase), cs=cos(phase);
 
   r[0] = h[5];
   r[1] = h[0];
@@ -63,17 +65,32 @@ static void Evaluate(const double *h, double t,
   r[2] = h[1] + h[3]*t;
 
   g[0] = cs; g[1]=sn; g[2]=h[3];
-  
+ 
   gg[0]=-h[4]*sn; gg[1]=h[4]*cs; gg[2]=0.;
 }
+
 
 
 int main()
 {
 
-    double b = -5.00668;
+    float b = -5.00668;
+    const int TRACK_SIZE = sizeof(struct trackparam);
+    const int HELIX_SIZE = sizeof(float)*6;
+
     struct trackparam *tp;
-    tp = (struct trackparam*)malloc(sizeof(struct trackparam));
+    struct trackparam *tp_d;
+
+    float *hp;
+    float *hp_d;
+
+    // Allocate memory
+    tp = (struct trackparam*)malloc(TRACK_SIZE);
+    hp = (float *)malloc(HELIX_SIZE);
+    cudaMalloc((void **) &tp_d, TRACK_SIZE);
+    cudaMalloc((void **) &hp_d, HELIX_SIZE);
+
+    // Initialize data
     tp->fP[0] = -0.00429969;
     tp->fP[1] = -4.56162;
     tp->fP[2] = 2.38928e-09;
@@ -81,17 +98,26 @@ int main()
     tp->fP[4] = -1.96397;
     tp->fAlpha = 1.90909;
     tp->fX = -0.00462971;
+    for(int i=0; i<6;i++) hp[i] = 0;
 
-    double hp[6];
-    GetHelixParameters(tp, hp, b);
+    // Transfer data and do computation
+    cudaMemcpy(tp_d, tp, TRACK_SIZE, cudaMemcpyHostToDevice);
     printf("GetHelixParameters\n");
-    for (int i; i<6; i++) printf("%f\n", hp[i]);
+    GetHelixParameters <<<1,1>>> (tp_d, hp_d, b);
 
+    // Retrieve data and check results
+    cudaMemcpy(hp, hp_d, HELIX_SIZE, cudaMemcpyDeviceToHost);
+    for (int i=0; i<6; i++) printf("%f\n", hp[i]);
+
+    // Cleanup
+    free(tp); free(hp);
+    cudaFree(tp_d); cudaFree(hp_d);
 
     // TODO: find real inputdata and test
-    double t = 3; 
-    double rv[3], d[3], dd[3];
+    float t = 3; 
+    float rv[3], d[3], dd[3];
     Evaluate(hp, t, rv, d, dd);
+
 
     return 1;
 }

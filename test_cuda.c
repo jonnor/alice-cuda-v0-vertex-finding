@@ -6,34 +6,36 @@
 
 #include <cuda.h>
 
+#define Double_t float //XXX: currently misbehaves if using double
+
 // http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliVParticle.h.html#18
-const float kB2C=-0.299792458e-3;
-const float kAlmost0=FLT_MIN;
+const Double_t kB2C=-0.299792458e-3;
+const Double_t kAlmost0=FLT_MIN;
 
 // http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliExternalTrackParam.h.html#178
 // We could also just use a simple array instead of the struct
-// float trackparam[7]
+// Double_t trackparam[7]
 // When we start caring about multiple tracks, they can either be represented by
 // - An array of structs/arrays
 // - An array where the params are separated by a rowstride equal to number of tracks
 // The latter might perform better, but be less readable
 struct trackparam
 {
-	float fP[5];
-	float fAlpha;
-	float fX;
+	Double_t fP[5];
+	Double_t fAlpha;
+	Double_t fX;
 };
 
 // http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliExternalTrackParam.h.html#XB.FNC
-__device__ float GetC(struct trackparam *tp, float b) {
+__device__ Double_t GetC(struct trackparam *tp, Double_t b) {
     return tp->fP[4]*b*kB2C;
 }
 
 
 // http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliExternalTrackParam.cxx.html#RJz9EE
-__global__ void GetHelixParameters(struct trackparam *tp, float hlx[6], float b) {
+__global__ void GetHelixParameters(struct trackparam *tp, Double_t hlx[6], Double_t b) {
 
-    float cs=cos(tp->fAlpha), sn=sin(tp->fAlpha); 
+    Double_t cs=cos(tp->fAlpha), sn=sin(tp->fAlpha); 
 
     hlx[0]=tp->fP[0]; hlx[1]=tp->fP[1]; hlx[2]=tp->fP[2]; hlx[3]=tp->fP[3];
 
@@ -47,14 +49,14 @@ __global__ void GetHelixParameters(struct trackparam *tp, float hlx[6], float b)
 
 
 // http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliExternalTrackParam.cxx.html#RJz9EE
-static void Evaluate(const float *h, float t,
-                     float r[3],  //radius vector
-                     float g[3],  //first defivatives
-                     float gg[3]) //second derivatives
+static void Evaluate(const Double_t *h, Double_t t,
+                     Double_t r[3],  //radius vector
+                     Double_t g[3],  //first defivatives
+                     Double_t gg[3]) //second derivatives
 {
 
-  float phase=h[4]*t+h[2];
-  float sn=sin(phase), cs=cos(phase);
+  Double_t phase=h[4]*t+h[2];
+  Double_t sn=sin(phase), cs=cos(phase);
 
   r[0] = h[5];
   r[1] = h[0];
@@ -74,19 +76,19 @@ static void Evaluate(const float *h, float t,
 int main()
 {
 
-    float b = -5.00668;
+    Double_t b = -5.00668;
     const int TRACK_SIZE = sizeof(struct trackparam);
-    const int HELIX_SIZE = sizeof(float)*6;
+    const int HELIX_SIZE = sizeof(Double_t)*6;
 
     struct trackparam *tp;
     struct trackparam *tp_d;
 
-    float *hp;
-    float *hp_d;
+    Double_t *hp;
+    Double_t *hp_d;
 
     // Allocate memory
     tp = (struct trackparam*)malloc(TRACK_SIZE);
-    hp = (float *)malloc(HELIX_SIZE);
+    hp = (Double_t *)malloc(HELIX_SIZE);
     cudaMalloc((void **) &tp_d, TRACK_SIZE);
     cudaMalloc((void **) &hp_d, HELIX_SIZE);
 
@@ -114,8 +116,8 @@ int main()
     cudaFree(tp_d); cudaFree(hp_d);
 
     // TODO: find real inputdata and test
-    float t = 3; 
-    float rv[3], d[3], dd[3];
+    Double_t t = 3; 
+    Double_t rv[3], d[3], dd[3];
     Evaluate(hp, t, rv, d, dd);
 
 

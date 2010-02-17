@@ -7,10 +7,16 @@
 #include <cuda.h>
 
 #define Double_t float //XXX: currently misbehaves if using double
+#define Bool_t int
 
 // http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliVParticle.h.html#18
 const Double_t kB2C=-0.299792458e-3;
-const Double_t kAlmost0=FLT_MIN;
+const Double_t kAlmost0=(Double_t)FLT_MIN;
+const Double_t kAlmost1=1. - Double_t(FLT_EPSILON);
+const Double_t kAlmost0Field=1.e-13;
+
+const int kTRUE=1;
+const int kFALSE=0;
 
 // http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliExternalTrackParam.h.html#178
 // We could also just use a simple array instead of the struct
@@ -24,10 +30,14 @@ struct trackparam
 	Double_t fP[5];
 	Double_t fAlpha;
 	Double_t fX;
+        Double_t fC[15];
 };
 
+// http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliExternalTrackParam.h.html#nauVnC
+Double_t GetSign(struct trackparam *tp) {return (tp->fP[4]>0) ? 1 : -1;}
+
 // http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliExternalTrackParam.h.html#XB.FNC
-__device__ Double_t GetC(struct trackparam *tp, Double_t b) {
+__host__ __device__ Double_t GetC(struct trackparam *tp, Double_t b) {
     return tp->fP[4]*b*kB2C;
 }
 
@@ -71,7 +81,89 @@ static void Evaluate(const Double_t *h, Double_t t,
   gg[0]=-h[4]*sn; gg[1]=h[4]*cs; gg[2]=0.;
 }
 
+//FIXME: move these to the top of file
+#define fP tp->fP
+#define fC tp->fC
+#define fX tp->fX
+#define fAlpha tp->fAlpha
 
+// http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliExternalTrackParam.cxx.html#u.xhAD
+Bool_t PropagateTo(struct trackparam *tp, Double_t xk, Double_t b) {
+  Double_t dx=xk-fX;
+  if (abs(dx)<=kAlmost0)  return kTRUE;
+
+  Double_t crv=GetC(tp, b);
+  if (abs(b) < kAlmost0Field) crv=0.;
+
+  Double_t f1=fP[2], f2=f1 + crv*dx;
+  if (abs(f1) >= kAlmost1) return kFALSE;
+  if (abs(f2) >= kAlmost1) return kFALSE;
+
+  Double_t &fP0=fP[0], &fP1=fP[1], &fP2=fP[2], &fP3=fP[3], &fP4=fP[4];
+  Double_t 
+  &fC00=fC[0],
+  &fC10=fC[1],   &fC11=fC[2],  
+  &fC20=fC[3],   &fC21=fC[4],   &fC22=fC[5],
+  &fC30=fC[6],   &fC31=fC[7],   &fC32=fC[8],   &fC33=fC[9],  
+  &fC40=fC[10],  &fC41=fC[11],  &fC42=fC[12],  &fC43=fC[13], &fC44=fC[14];
+
+  Double_t r1=sqrt((1.-f1)*(1.+f1)), r2=sqrt((1.-f2)*(1.+f2));
+
+  fX=xk;
+  fP0 += dx*(f1+f2)/(r1+r2);
+  fP1 += dx*(r2 + f2*(f1+f2)/(r1+r2))*fP3;  // Many thanks to P.Hristov !
+  fP2 += dx*crv;
+
+  //f = F - 1
+
+  Double_t f02=    dx/(r1*r1*r1);            Double_t cc=crv/fP4;
+  Double_t f04=0.5*dx*dx/(r1*r1*r1);         f04*=cc;
+  Double_t f12=    dx*fP3*f1/(r1*r1*r1);
+  Double_t f14=0.5*dx*dx*fP3*f1/(r1*r1*r1);  f14*=cc;
+  Double_t f13=    dx/r1;
+  Double_t f24=    dx;                       f24*=cc;
+
+  //b = C*ft
+  Double_t b00=f02*fC20 + f04*fC40, b01=f12*fC20 + f14*fC40 + f13*fC30;
+  Double_t b02=f24*fC40;
+  Double_t b10=f02*fC21 + f04*fC41, b11=f12*fC21 + f14*fC41 + f13*fC31;
+  Double_t b12=f24*fC41;
+  Double_t b20=f02*fC22 + f04*fC42, b21=f12*fC22 + f14*fC42 + f13*fC32;
+  Double_t b22=f24*fC42;
+  Double_t b40=f02*fC42 + f04*fC44, b41=f12*fC42 + f14*fC44 + f13*fC43;
+  Double_t b42=f24*fC44;
+  Double_t b30=f02*fC32 + f04*fC43, b31=f12*fC32 + f14*fC43 + f13*fC33;
+  Double_t b32=f24*fC43;
+
+  //a = f*b = f*C*ft
+  Double_t a00=f02*b20+f04*b40,a01=f02*b21+f04*b41,a02=f02*b22+f04*b42;
+  Double_t a11=f12*b21+f14*b41+f13*b31,a12=f12*b22+f14*b42+f13*b32;
+  Double_t a22=f24*b42;
+
+  //F*C*Ft = C + (b + bt + a)
+  fC00 += b00 + b00 + a00;
+  fC10 += b10 + b01 + a01; 
+  fC20 += b20 + b02 + a02;
+  fC30 += b30;
+  fC40 += b40;
+  fC11 += b11 + b11 + a11;
+  fC21 += b21 + b12 + a12;
+  fC31 += b31; 
+  fC41 += b41;
+  fC22 += b22 + b22 + a22;
+  fC32 += b32;
+  fC42 += b42;
+
+  // CheckCovariance(); //TODO: implement
+
+  return kTRUE;
+}
+
+//FIXME: put functions above into separate file so that we dont have to do this
+#undef fP
+#undef fC
+#undef fAlpha
+#undef fX
 
 int main()
 {
@@ -111,15 +203,20 @@ int main()
     cudaMemcpy(hp, hp_d, HELIX_SIZE, cudaMemcpyDeviceToHost);
     for (int i=0; i<6; i++) printf("%f\n", hp[i]);
 
-    // Cleanup
-    free(tp); free(hp);
-    cudaFree(tp_d); cudaFree(hp_d);
-
     // TODO: find real inputdata and test
     Double_t t = 3; 
     Double_t rv[3], d[3], dd[3];
     Evaluate(hp, t, rv, d, dd);
 
+    // TODO: find real inputdata and test
+    Double_t xk = 50.0;
+    PropagateTo(tp, xk, b);
+    printf("PropagateTo\n");
+    for (int i=0; i<5; i++) printf("%f\n",tp->fP[i]);
+
+    // Cleanup
+    free(tp); free(hp);
+    cudaFree(tp_d); cudaFree(hp_d);
 
     return 1;
 }

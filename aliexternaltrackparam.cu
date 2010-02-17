@@ -2,26 +2,64 @@
 #include "common.h"
 #include "aliexternaltrackparam.h"
 
+#define fP tp->fP
+#define fC tp->fC
+#define fX tp->fX
+#define fAlpha tp->fAlpha
+
+// http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliVParticle.cxx.html#EkM_t
+Bool_t Local2GlobalMomentum(Double_t p[3], Double_t alpha) {
+  if (abs(p[0])<=kAlmost0) return kFALSE;
+  if (abs(p[1])> kAlmost1) return kFALSE;
+
+  Double_t pt=1./abs(p[0]);
+  Double_t cs=cos(alpha), sn=sin(alpha);
+  Double_t r=sqrt((1. - p[1])*(1. + p[1]));
+  p[0]=pt*(r*cs - p[1]*sn); p[1]=pt*(p[1]*cs + r*sn); p[2]=pt*p[2];
+
+  return kTRUE;
+}
+
+// http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliVParticle.cxx.html#EkM_t
+Bool_t Local2GlobalPosition(Double_t r[3], Double_t alpha) {
+  Double_t cs=cos(alpha), sn=sin(alpha), x=r[0];
+  r[0]=x*cs - r[1]*sn; r[1]=x*sn + r[1]*cs;
+
+  return kTRUE;
+}
+
+
+// http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliExternalTrackParam.cxx.html#WGE_nE
+Bool_t GetPxPyPz(struct trackparam *tp, Double_t p[3]) {
+  p[0]=fP[4]; p[1]=fP[2]; p[2]=fP[3];
+  return Local2GlobalMomentum(p,fAlpha);
+}
+
+// http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliExternalTrackParam.cxx.html#zlsQ3B
+Bool_t GetXYZ(struct trackparam *tp, Double_t *r) {
+  r[0]=fX; r[1]=fP[0]; r[2]=fP[1];
+  return Local2GlobalPosition(r,fAlpha);
+}
+
 // http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliExternalTrackParam.h.html#nauVnC
-Double_t GetSign(struct trackparam *tp) {return (tp->fP[4]>0) ? 1 : -1;}
+Double_t GetSign(struct trackparam *tp) {return (fP[4]>0) ? 1 : -1;}
 
 // http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliExternalTrackParam.h.html#XB.FNC
 __host__ __device__ Double_t GetC(struct trackparam *tp, Double_t b) {
-    return tp->fP[4]*b*kB2C;
+    return fP[4]*b*kB2C;
 }
-
 
 // http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliExternalTrackParam.cxx.html#RJz9EE
 __global__ void GetHelixParameters(struct trackparam *tp, Double_t hlx[6], Double_t b) {
 
-    Double_t cs=cos(tp->fAlpha), sn=sin(tp->fAlpha); 
+    Double_t cs=cos(fAlpha), sn=sin(fAlpha); 
 
-    hlx[0]=tp->fP[0]; hlx[1]=tp->fP[1]; hlx[2]=tp->fP[2]; hlx[3]=tp->fP[3];
+    hlx[0]=fP[0]; hlx[1]=fP[1]; hlx[2]=fP[2]; hlx[3]=fP[3];
 
-    hlx[5]=tp->fX*cs - hlx[0]*sn;               // x0
-    hlx[0]=tp->fX*sn + hlx[0]*cs;               // y0
+    hlx[5]=fX*cs - hlx[0]*sn;               // x0
+    hlx[0]=fX*sn + hlx[0]*cs;               // y0
     //hlx[1]=                                 // z0
-    hlx[2]=sin(hlx[2]) + tp->fAlpha;    // phi0
+    hlx[2]=sin(hlx[2]) + fAlpha;    // phi0
     //hlx[3]=                                 // tgl
     hlx[4]=GetC(tp, b);                         // C
 } 
@@ -50,11 +88,6 @@ void Evaluate(const Double_t *h, Double_t t,
   gg[0]=-h[4]*sn; gg[1]=h[4]*cs; gg[2]=0.;
 }
 
-//FIXME: move these to the top of file
-#define fP tp->fP
-#define fC tp->fC
-#define fX tp->fX
-#define fAlpha tp->fAlpha
 
 // http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliExternalTrackParam.cxx.html#u.xhAD
 Bool_t PropagateTo(struct trackparam *tp, Double_t xk, Double_t b) {
@@ -153,9 +186,3 @@ Double_t GetD(struct trackparam *tp, Double_t x,Double_t y,Double_t b) {
   a=2*(xt*fP[2] - yt*sqrt((1.-fP[2])*(1.+fP[2])))-rp4*(xt*xt + yt*yt);
   return  -a/(1 + sqrt(sn*sn + cs*cs));
 }
-
-//FIXME: put functions above into separate file so that we dont have to do this
-#undef fP
-#undef fC
-#undef fAlpha
-#undef fX

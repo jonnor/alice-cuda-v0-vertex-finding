@@ -103,7 +103,7 @@ __device__ __host__ Double_t GetDCA(struct trackparam *tp1, struct trackparam *t
 #define fAlpha tp->fAlpha
 
 // http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliVParticle.cxx.html#EkM_t
-Bool_t Local2GlobalMomentum(Double_t p[3], Double_t alpha) {
+__host__ __device__ Bool_t Local2GlobalMomentum(Double_t p[3], Double_t alpha) {
   if (abs(p[0])<=kAlmost0) return kFALSE;
   if (abs(p[1])> kAlmost1) return kFALSE;
 
@@ -116,7 +116,7 @@ Bool_t Local2GlobalMomentum(Double_t p[3], Double_t alpha) {
 }
 
 // http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliVParticle.cxx.html#EkM_t
-Bool_t Local2GlobalPosition(Double_t r[3], Double_t alpha) {
+__host__ __device__ Bool_t Local2GlobalPosition(Double_t r[3], Double_t alpha) {
   Double_t cs=cos(alpha), sn=sin(alpha), x=r[0];
   r[0]=x*cs - r[1]*sn; r[1]=x*sn + r[1]*cs;
 
@@ -125,19 +125,19 @@ Bool_t Local2GlobalPosition(Double_t r[3], Double_t alpha) {
 
 
 // http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliExternalTrackParam.cxx.html#WGE_nE
-Bool_t GetPxPyPz(struct trackparam *tp, Double_t p[3]) {
+__host__ __device__ Bool_t GetPxPyPz(struct trackparam *tp, Double_t p[3]) {
   p[0]=fP[4]; p[1]=fP[2]; p[2]=fP[3];
   return Local2GlobalMomentum(p,fAlpha);
 }
 
 // http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliExternalTrackParam.cxx.html#zlsQ3B
-Bool_t GetXYZ(struct trackparam *tp, Double_t *r) {
+__host__ __device__ Bool_t GetXYZ(struct trackparam *tp, Double_t *r) {
   r[0]=fX; r[1]=fP[0]; r[2]=fP[1];
   return Local2GlobalPosition(r,fAlpha);
 }
 
 // http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliExternalTrackParam.h.html#nauVnC
-Double_t GetSign(struct trackparam *tp) {return (fP[4]>0) ? 1 : -1;}
+__host__ __device__ Double_t GetSign(struct trackparam *tp) {return (fP[4]>0) ? 1 : -1;}
 
 // http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliExternalTrackParam.h.html#XB.FNC
 __host__ __device__ Double_t GetC(struct trackparam *tp, Double_t b) {
@@ -145,7 +145,7 @@ __host__ __device__ Double_t GetC(struct trackparam *tp, Double_t b) {
 }
 
 // http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliExternalTrackParam.cxx.html#RJz9EE
-__device__ __host__ void GetHelixParameters(struct trackparam *tp, Double_t hlx[6], Double_t b) {
+__host__ __device__ void GetHelixParameters(struct trackparam *tp, Double_t hlx[6], Double_t b) {
 
     Double_t cs=cos(fAlpha), sn=sin(fAlpha); 
 
@@ -161,7 +161,7 @@ __device__ __host__ void GetHelixParameters(struct trackparam *tp, Double_t hlx[
 
 
 // http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliExternalTrackParam.cxx.html#RJz9EE
-void Evaluate(const Double_t *h, Double_t t,
+__host__ __device__ void Evaluate(const Double_t *h, Double_t t,
                      Double_t r[3],  //radius vector
                      Double_t g[3],  //first defivatives
                      Double_t gg[3]) //second derivatives
@@ -185,7 +185,7 @@ void Evaluate(const Double_t *h, Double_t t,
 
 
 // http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliExternalTrackParam.cxx.html#u.xhAD
-Bool_t PropagateTo(struct trackparam *tp, Double_t xk, Double_t b) {
+__host__ __device__ Bool_t PropagateTo(struct trackparam *tp, Double_t xk, Double_t b) {
   Double_t dx=xk-fX;
   if (abs(dx)<=kAlmost0)  return kTRUE;
 
@@ -256,7 +256,7 @@ Bool_t PropagateTo(struct trackparam *tp, Double_t xk, Double_t b) {
   return kTRUE;
 }
 
-Double_t GetLinearD(struct trackparam *tp, Double_t xv,Double_t yv) {
+__host__ __device__ Double_t GetLinearD(struct trackparam *tp, Double_t xv,Double_t yv) {
   Double_t sn=sin(fAlpha), cs=cos(fAlpha);
   Double_t x= xv*cs + yv*sn;
   Double_t y=-xv*sn + yv*cs;
@@ -266,7 +266,7 @@ Double_t GetLinearD(struct trackparam *tp, Double_t xv,Double_t yv) {
   return -d;
 }
 
-Double_t GetD(struct trackparam *tp, Double_t x,Double_t y,Double_t b) {
+__host__ __device__ Double_t GetD(struct trackparam *tp, Double_t x,Double_t y,Double_t b) {
   if (abs(b) < kAlmost0Field) return GetLinearD(tp,x,y);
   Double_t rp4=GetC(tp, b);
 

@@ -7,6 +7,7 @@
 
 #include "common.h"
 #include "aliexternaltrackparam.h"
+#include "aliv0vertexer.h"
 
 int main()
 {
@@ -81,10 +82,24 @@ int main()
     Double_t dca = 1.0;
     dca = GetDCA(tp, tp2, b, xn, xp);
     printf("GetDCA = %f\n", dca);
-    free(tp2);
+
+    // v0 vertexer
+    struct privertex *vtxT3d;
+    vtxT3d = (struct privertex *) malloc(sizeof(struct privertex));
+    vtxT3d->fPosition[0] = 0.0;
+    vtxT3d->fPosition[1] = 0.0;
+    vtxT3d->fPosition[2] = 0.0;
+
+    //FIXME: should be pointer to struct trackparam instead??
+    const int NTRACKS=2;
+    struct trackparam *tracks[NTRACKS];
+    tracks[0] = tp;
+    tracks[1] = tp2;
+
+    Tracks2V0vertices(vtxT3d, *tracks, NTRACKS, b);
 
     // Cleanup
-    free(tp); free(hp);
+    free(tp); free(hp); free(tp2); free(vtxT3d);
     cudaFree(tp_d); cudaFree(hp_d);
 
     return 1;

@@ -5,6 +5,7 @@
 #include <float.h>
 
 #define Double_t float //XXX: currently misbehaves if using double
+#define Int_t int
 #define Bool_t int
 
 // http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliVParticle.h.html#18

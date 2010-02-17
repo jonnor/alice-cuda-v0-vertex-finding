@@ -2,6 +2,101 @@
 #include "common.h"
 #include "aliexternaltrackparam.h"
 
+
+// http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliExternalTrackParam.cxx.html#1175
+// NOTE: I am not sure about the function qualifier
+__device__ __host__ Double_t GetDCA(struct trackparam *tp1, struct trackparam *tp2, Double_t b, Double_t &xthis, Double_t &xp) {
+
+  Double_t dy2 = tp1->fC[0] + tp2->fC[0]; //GetSigmaY2
+  Double_t dz2 = tp1->fC[2] + tp2->fC[2]; //GetSigmaZ2
+  Double_t dx2 = dy2; 
+
+  Double_t p1[8]; GetHelixParameters(tp1,p1,b);
+  p1[6] = sin(p1[2]); p1[7] = cos(p1[2]);
+  Double_t p2[8]; GetHelixParameters(tp2,p2,b);
+  p2[6] = sin(p2[2]); p2[7] = cos(p2[2]);
+
+  Double_t r1[3], g1[3], gg1[3]; Double_t t1 = 0.;
+  Evaluate(p1, t1, r1, g1, gg1);//calculates some derivatives and such from p1
+  Double_t r2[3], g2[3], gg2[3]; Double_t t2 = 0.;
+  Evaluate(p2, t2, r2, g2, gg2);//calculates some derivatives and such from p2
+
+  // some partial derivatives
+  Double_t dx = r2[0]-r1[0], dy = r2[1]-r1[1], dz = r2[2]-r1[2];
+  Double_t dm = dx*dx/dx2 + dy*dy/dy2 + dz*dz/dz2;
+
+  Int_t max=27;
+  while (max--) {
+     Double_t gt1 = -(dx*g1[0]/dx2 + dy*g1[1]/dy2 + dz*g1[2]/dz2);
+     Double_t gt2 = +(dx*g2[0]/dx2 + dy*g2[1]/dy2 + dz*g2[2]/dz2);
+	 // define hessian matrix
+     Double_t h11 = (g1[0]*g1[0] - dx*gg1[0])/dx2 + 
+                 (g1[1]*g1[1] - dy*gg1[1])/dy2 +
+                 (g1[2]*g1[2] - dz*gg1[2])/dz2;
+     Double_t h22 = (g2[0]*g2[0] + dx*gg2[0])/dx2 + 
+                 (g2[1]*g2[1] + dy*gg2[1])/dy2 +
+                 (g2[2]*g2[2] + dz*gg2[2])/dz2;
+     Double_t h12 = -(g1[0]*g2[0]/dx2 + g1[1]*g2[1]/dy2 + g1[2]*g2[2]/dz2);
+	//calculate determinant of hessian matrix
+     Double_t det = h11*h22-h12*h12;
+
+     Double_t dt1,dt2;
+     if ( abs(det)<1.e-33 ) {
+        //(quasi)singular Hessian
+        dt1=-gt1; dt2=-gt2;
+     } else {
+        dt1=-(gt1*h22 - gt2*h12)/det; 
+        dt2=-(h11*gt2 - h12*gt1)/det;
+     }
+
+     if ((dt1*gt1+dt2*gt2)>0) {dt1=-dt1; dt2=-dt2;}
+
+     //check delta(phase1) ?
+     //check delta(phase2) ?
+
+     if ( abs(dt1)/(abs(t1)+1.e-3 ) < 1.e-4)
+     if ( abs(dt2)/(abs(t2)+1.e-3 ) < 1.e-4) {
+        if ( (gt1*gt1+gt2*gt2) > 1.e-4/dy2/dy2) 
+          ; // 	  printf(" stopped at not a stationary point !"); //AliDebug(1," stopped at not a stationary point !");
+        Double_t lmb=h11+h22; lmb=lmb-sqrt(lmb*lmb-4*det);
+        if (lmb < 0.) 
+          ; // 	  printf(" stopped at not a minimum !"); //AliDebug(1," stopped at not a minimum !");
+        break;
+     }
+
+     Double_t dd = dm;
+     for (Int_t div=1 ; ; div*=2) {
+	Evaluate(p1,t1+dt1,r1,g1,gg1);
+        Evaluate(p2,t2+dt2,r2,g2,gg2);
+
+        dx = r2[0]-r1[0]; dy = r2[1]-r1[1]; dz = r2[2]-r1[2];
+        dd=dx*dx/dx2 + dy*dy/dy2 + dz*dz/dz2;
+	if (dd<dm) break;
+        dt1*=0.5; dt2*=0.5;
+        if (div>512) {
+            break; //printf(" overshoot !"); AliDebug(1," overshoot !"); break;
+        }
+     }
+     dm=dd;
+
+     t1+=dt1;
+     t2+=dt2;
+
+  } // end of while
+
+  if (max<=0) ; // printf(" too many iterations !"); //AliDebug(1," too many iterations !");
+
+  Double_t cs = cos(tp1->fAlpha);
+  Double_t sn = sin(tp1->fAlpha);
+  xthis=(r1[0] * cs) + (r1[1] * sn);
+
+  cs=cos(tp2->fAlpha);
+  sn=sin(tp2->fAlpha);
+  xp = (r2[0] * cs) + (r2[1] * sn);
+
+  return sqrt( dm*sqrt(dy2*dz2) );
+}
+
 #define fP tp->fP
 #define fC tp->fC
 #define fX tp->fX
@@ -50,7 +145,7 @@ __host__ __device__ Double_t GetC(struct trackparam *tp, Double_t b) {
 }
 
 // http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliExternalTrackParam.cxx.html#RJz9EE
-__global__ void GetHelixParameters(struct trackparam *tp, Double_t hlx[6], Double_t b) {
+__device__ __host__ void GetHelixParameters(struct trackparam *tp, Double_t hlx[6], Double_t b) {
 
     Double_t cs=cos(fAlpha), sn=sin(fAlpha); 
 

@@ -40,7 +40,7 @@ int main()
     // Transfer data and do computation
     cudaMemcpy(tp_d, tp, TRACK_SIZE, cudaMemcpyHostToDevice);
     printf("GetHelixParameters\n");
-    GetHelixParameters <<<1,1>>> (tp_d, hp_d, b);
+//     GetHelixParameters <<<1,1>>> (tp_d, hp_d, b);
 
     // Retrieve data and check results
     cudaMemcpy(hp, hp_d, HELIX_SIZE, cudaMemcpyDeviceToHost);
@@ -63,6 +63,25 @@ int main()
     printf("GetLinearD = %f\n", d_lin);
     Double_t d_ = GetD(tp, xv, yv, b);
     printf("GetD = %f\n", d_);
+
+
+    // TODO: find real inputdata and test. Must include covariance matrix
+    struct trackparam *tp2;
+    tp2 = (struct trackparam*)malloc(TRACK_SIZE);
+
+    tp->fP[0] = -0.0315877;
+    tp->fP[1] = -4.54952;
+    tp->fP[2] = 3.74249e-09;
+    tp->fP[3] = 1.15249;
+    tp->fP[4] = 1.67247;
+    tp->fAlpha = 0.107172;
+    tp->fX = 0.000891429;
+
+    Double_t xp=1.0, xn=1.0;
+    Double_t dca = 1.0;
+    dca = GetDCA(tp, tp2, b, xn, xp);
+    printf("GetDCA = %f\n", dca);
+    free(tp2);
 
     // Cleanup
     free(tp); free(hp);

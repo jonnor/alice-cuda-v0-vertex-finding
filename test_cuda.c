@@ -159,6 +159,32 @@ Bool_t PropagateTo(struct trackparam *tp, Double_t xk, Double_t b) {
   return kTRUE;
 }
 
+Double_t GetLinearD(struct trackparam *tp, Double_t xv,Double_t yv) {
+  Double_t sn=sin(fAlpha), cs=cos(fAlpha);
+  Double_t x= xv*cs + yv*sn;
+  Double_t y=-xv*sn + yv*cs;
+
+  Double_t d = (fX-x)*fP[2] - (fP[0]-y)*sqrt((1.-fP[2])*(1.+fP[2]));
+
+  return -d;
+}
+
+Double_t GetD(struct trackparam *tp, Double_t x,Double_t y,Double_t b) {
+  if (abs(b) < kAlmost0Field) return GetLinearD(tp,x,y);
+  Double_t rp4=GetC(tp, b);
+
+  Double_t xt=fX, yt=fP[0];
+
+  Double_t sn=sin(fAlpha), cs=cos(fAlpha);
+  Double_t a = x*cs + y*sn;
+  y = -x*sn + y*cs; x=a;
+  xt-=x; yt-=y;
+
+  sn=rp4*xt - fP[2]; cs=rp4*yt + sqrt((1.- fP[2])*(1.+fP[2]));
+  a=2*(xt*fP[2] - yt*sqrt((1.-fP[2])*(1.+fP[2])))-rp4*(xt*xt + yt*yt);
+  return  -a/(1 + sqrt(sn*sn + cs*cs));
+}
+
 //FIXME: put functions above into separate file so that we dont have to do this
 #undef fP
 #undef fC
@@ -213,6 +239,13 @@ int main()
     PropagateTo(tp, xk, b);
     printf("PropagateTo\n");
     for (int i=0; i<5; i++) printf("%f\n",tp->fP[i]);
+
+    // TODO: find real inputdata and test
+    Double_t xv = 1.0, yv = 1.0;
+    Double_t d_lin = GetLinearD(tp, xv, yv);
+    printf("GetLinearD = %f\n", d_lin);
+    Double_t d_ = GetD(tp, xv, yv, b);
+    printf("GetD = %f\n", d_);
 
     // Cleanup
     free(tp); free(hp);

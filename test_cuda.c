@@ -2,21 +2,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
-#include <float.h>
 
 #include <cuda.h>
 
-#define Double_t float //XXX: currently misbehaves if using double
-#define Bool_t int
-
-// http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliVParticle.h.html#18
-const Double_t kB2C=-0.299792458e-3;
-const Double_t kAlmost0=(Double_t)FLT_MIN;
-const Double_t kAlmost1=1. - Double_t(FLT_EPSILON);
-const Double_t kAlmost0Field=1.e-13;
-
-const int kTRUE=1;
-const int kFALSE=0;
+#include "common.h"
 
 // http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliExternalTrackParam.h.html#178
 // We could also just use a simple array instead of the struct

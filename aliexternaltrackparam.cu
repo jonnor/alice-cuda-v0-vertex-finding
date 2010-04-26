@@ -132,6 +132,11 @@ __host__ __device__ Bool_t GetPxPyPz(struct trackparam *tp, Double_t p[3]) {
   return Local2GlobalMomentum(p,fAlpha);
 }
 
+// http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliExternalTrackParam.h.html#JBAezD
+__host__ __device__ Double_t GetX(struct trackparam *tp) {
+    return fX;
+}
+
 // http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliExternalTrackParam.cxx.html#zlsQ3B
 __host__ __device__ Bool_t GetXYZ(struct trackparam *tp, Double_t *r) {
   r[0]=fX; r[1]=fP[0]; r[2]=fP[1];

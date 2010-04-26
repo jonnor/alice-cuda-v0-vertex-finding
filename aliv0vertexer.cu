@@ -72,42 +72,42 @@ __device__ __host__ Int_t Tracks2V0vertices(struct privertex *vtxT3D,
      else pos[npos++]=i;
    }
 
-//TODO: not implemented
-//    //Tries to match negative tracks with positive to find v0s
-//    for (i=0; i<nneg; i++) {
-//       Int_t nidx=neg[i];
-//       AliESDtrack *ntrk=event->GetTrack(nidx);
-//
-//       for (Int_t k=0; k<npos; k++) {
-//          Int_t pidx=pos[k];
-// 	 AliESDtrack *ptrk=event->GetTrack(pidx);
-//
-//          if (TMath::Abs(ntrk->GetD(xPrimaryVertex,yPrimaryVertex,b))<fDNmin)
-// 	   if (TMath::Abs(ptrk->GetD(xPrimaryVertex,yPrimaryVertex,b))<fDNmin) continue;
-//
-//          Double_t xn, xp, dca=ntrk->GetDCA(ptrk,b,xn,xp);
-//          if (dca > fDCAmax) continue;
-//          if ((xn+xp) > 2*fRmax) continue;
-//          if ((xn+xp) < 2*fRmin) continue;
-//    
-//          AliExternalTrackParam nt(*ntrk), pt(*ptrk);
-//          Bool_t corrected=kFALSE;
-//          if ((nt.GetX() > 3.) && (xn < 3.)) {
-// 	   //correct for the beam pipe material
-//            corrected=kTRUE;
-//          }
-//          if ((pt.GetX() > 3.) && (xp < 3.)) {
-// 	   //correct for the beam pipe material
-//            corrected=kTRUE;
-//          }
-//          if (corrected) {
-// 	   dca=nt.GetDCA(&pt,b,xn,xp);
-//            if (dca > fDCAmax) continue;
-//            if ((xn+xp) > 2*fRmax) continue;
-//            if ((xn+xp) < 2*fRmin) continue;
-// 	 }
-//
-//          nt.PropagateTo(xn,b); pt.PropagateTo(xp,b);
+   //Tries to match negative tracks with positive to find v0s
+   for (i=0; i<nneg; i++) {
+      Int_t nidx=neg[i];
+      struct trackparam *ntrk=&tracks[nidx]; // AliESDtrack *ntrk=event->GetTrack(nidx);
+
+      for (Int_t k=0; k<npos; k++) {
+         Int_t pidx=pos[k];
+	 struct trackparam *ptrk=&tracks[pidx]; // AliESDtrack *ptrk=event->GetTrack(pidx);
+
+         if (abs(GetD(ntrk,xPrimaryVertex,yPrimaryVertex,b))<fDNmin)
+	   if (abs(GetD(ptrk,xPrimaryVertex,yPrimaryVertex,b))<fDNmin) continue;
+
+         Double_t xn, xp, dca=GetDCA(ntrk,ptrk,b,xn,xp);
+         if (dca > fDCAmax) continue;
+         if ((xn+xp) > 2*fRmax) continue;
+         if ((xn+xp) < 2*fRmin) continue;
+
+         // XXX: might need a cast instead, and should probably be copies
+         struct trackparam nt(*ntrk), pt(*ptrk); 
+         Bool_t corrected=kFALSE;
+         if ((GetX(&nt) > 3.) && (xn < 3.)) {
+	   //correct for the beam pipe material
+           corrected=kTRUE;
+         }
+         if ((GetX(&pt) > 3.) && (xp < 3.)) {
+	   //correct for the beam pipe material
+           corrected=kTRUE;
+         }
+         if (corrected) {
+	   dca=GetDCA(&nt,&pt,b,xn,xp);
+           if (dca > fDCAmax) continue;
+           if ((xn+xp) > 2*fRmax) continue;
+           if ((xn+xp) < 2*fRmin) continue;
+	 }
+
+         PropagateTo(&nt,xn,b); PropagateTo(&pt,xp,b);
 
 // TODO: not implemented
 //          AliESDv0 vertex(nt,nidx,pt,pidx);
@@ -122,8 +122,9 @@ __device__ __host__ Int_t Tracks2V0vertices(struct privertex *vtxT3D,
 //          event->AddV0(&vertex);
 
 //          nvtx++;
-//       }
-//    }
+      }
+
+    }
 
 //    Info("Tracks2V0vertices","Number of reconstructed V0 vertices: %d",nvtx);
 

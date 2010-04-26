@@ -3,6 +3,8 @@
 #define COMMON_H
 
 #include <float.h>
+#define sin sinf
+#define cos cosf
 
 #define Double_t float //XXX: currently misbehaves if using double
 #define Int_t int

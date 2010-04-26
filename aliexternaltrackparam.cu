@@ -2,9 +2,6 @@
 #include "common.h"
 #include "aliexternaltrackparam.h"
 
-#define sin sinf
-#define cos cosf
-
 // http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliExternalTrackParam.cxx.html#1175
 // NOTE: I am not sure about the function qualifier
 __device__ __host__ Double_t GetDCA(struct trackparam *tp1, struct trackparam *tp2, Double_t b, Double_t &xthis, Double_t &xp) {

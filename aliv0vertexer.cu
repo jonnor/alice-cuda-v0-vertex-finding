@@ -1,7 +1,7 @@
 
 #include "common.h"
+//#include "aliexternaltrackparam.cu"
 #include "aliv0vertexer.h"
-#include "aliexternaltrackparam.h"
 
 
 //NOTE: AliESDEvent event had to be replaced
@@ -10,13 +10,12 @@
 // - The number of tracks
 // - The magnetic field
 // - The primary vertex
-//FIXME: these functions must be moved to reside in the same file as
-//the funtions they are calling (CUDA limitation)
 __global__ void Tracks2V0vertices_kernel(struct privertex *vtxT3D, 
                                             struct trackparam *tracks, 
                                             Int_t nentr, Double_t b) {
-
-    Int_t nvrtx = Tracks2V0vertices(vtxT3D, tracks, nentr, b);
+    ;
+    //FIXME: when enabled, this call makes cuda very angry and causes a syntax error in the .ptx file
+    //Int_t nvrtx = Tracks2V0vertices(vtxT3D, tracks, nentr, b);
 }
 
 #define GetXv() fPosition[0]

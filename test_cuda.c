@@ -6,8 +6,8 @@
 #include <cuda.h>
 
 #include "common.h"
-#include "aliexternaltrackparam.h"
-#include "aliv0vertexer.h"
+#include "aliexternaltrackparam.cu"
+#include "aliv0vertexer.cu"
 
 int main()
 {
@@ -17,16 +17,12 @@ int main()
     const int HELIX_SIZE = sizeof(Double_t)*6;
 
     struct trackparam *tp;
-    struct trackparam *tp_d;
 
     Double_t *hp;
-    Double_t *hp_d;
 
     // Allocate memory
     tp = (struct trackparam*)malloc(TRACK_SIZE);
     hp = (Double_t *)malloc(HELIX_SIZE);
-    cudaMalloc((void **) &tp_d, TRACK_SIZE);
-    cudaMalloc((void **) &hp_d, HELIX_SIZE);
 
     // Initialize data
     tp->fP[0] = -0.00429969;
@@ -38,13 +34,8 @@ int main()
     tp->fX = -0.00462971;
     for(int i=0; i<6;i++) hp[i] = 0;
 
-    // Transfer data and do computation
-    cudaMemcpy(tp_d, tp, TRACK_SIZE, cudaMemcpyHostToDevice);
     printf("GetHelixParameters\n");
-//     GetHelixParameters <<<1,1>>> (tp_d, hp_d, b);
-
-    // Retrieve data and check results
-    cudaMemcpy(hp, hp_d, HELIX_SIZE, cudaMemcpyDeviceToHost);
+    GetHelixParameters(tp, hp, b);
     for (int i=0; i<6; i++) printf("%f\n", hp[i]);
 
     // TODO: find real inputdata and test
@@ -70,13 +61,13 @@ int main()
     struct trackparam *tp2;
     tp2 = (struct trackparam*)malloc(TRACK_SIZE);
 
-    tp->fP[0] = -0.0315877;
-    tp->fP[1] = -4.54952;
-    tp->fP[2] = 3.74249e-09;
-    tp->fP[3] = 1.15249;
-    tp->fP[4] = 1.67247;
-    tp->fAlpha = 0.107172;
-    tp->fX = 0.000891429;
+    tp2->fP[0] = -0.0315877;
+    tp2->fP[1] = -4.54952;
+    tp2->fP[2] = 3.74249e-09;
+    tp2->fP[3] = 1.15249;
+    tp2->fP[4] = 1.67247;
+    tp2->fAlpha = 0.107172;
+    tp2->fX = 0.000891429;
 
     Double_t xp=1.0, xn=1.0;
     Double_t dca = 1.0;
@@ -96,11 +87,11 @@ int main()
     tracks[0] = tp;
     tracks[1] = tp2;
 
+    printf("Tracks2V0vertices\n");
     Tracks2V0vertices(vtxT3d, *tracks, NTRACKS, b);
 
     // Cleanup
     free(tp); free(hp); free(tp2); free(vtxT3d);
-    cudaFree(tp_d); cudaFree(hp_d);
 
     return 1;
 }

@@ -2,6 +2,8 @@
 #include "common.h"
 #include "aliexternaltrackparam.h"
 
+#define sin sinf
+#define cos cosf
 
 // http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliExternalTrackParam.cxx.html#1175
 // NOTE: I am not sure about the function qualifier
@@ -281,3 +283,8 @@ __host__ __device__ Double_t GetD(struct trackparam *tp, Double_t x,Double_t y,D
   a=2*(xt*fP[2] - yt*sqrt((1.-fP[2])*(1.+fP[2])))-rp4*(xt*xt + yt*yt);
   return  -a/(1 + sqrt(sn*sn + cs*cs));
 }
+
+#undef fP
+#undef fC
+#undef fX
+#undef fAlpha

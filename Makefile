@@ -3,11 +3,12 @@ EXECUTABLE	:= test_cuda
 # Device sources (.cu)
 CUFILES		:= \
 	test_cuda.cu \
-	aliexternaltrackparam.cu
+
 # Headers
 CUDEPS		:= \
 	common.h \
-	aliexternaltrackparam.h
+	aliexternaltrackparam.cu \
+	aliv0vertexer.cu
 
 
 ### COMMON ###

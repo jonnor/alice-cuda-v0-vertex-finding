@@ -1,7 +1,7 @@
 
 #include "aliexternaltrackparam.h"
 
-/*
+
 // TODO. implement
 // TODO: Needs to go into a file in our cuda project code, which we canz link against
 Int_t cuda_v0vertexer(struct trackparam* tracks) {
@@ -12,9 +12,9 @@ Int_t cuda_v0vertexer(struct trackparam* tracks) {
 void add_v0s_to_event(AliESDEvent *event) {
     ;
 }
-*/
 
-/*
+
+
 // TODO: Needs to go into AliV0vertexer.cxx
 // http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliV0vertexer.cxx.html#gwutwE
 Int_t Tracks2v0vertices_gpu(AliESDEvent *event) {
@@ -36,9 +36,9 @@ Int_t Tracks2v0vertices_gpu(AliESDEvent *event) {
     // Put the data into the event
     add_v0s_to_event(event);
     Int_t nv0s;
-    return nv0s
+    return nv0s;
 }
-*/
+
 
 struct trackparam* tracks_from_event(AliESDEvent *event, Int_t &ntrks) {
     ntrks = event->GetNumberOfTracks();

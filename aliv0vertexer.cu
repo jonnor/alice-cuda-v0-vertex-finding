@@ -3,6 +3,7 @@
 //#include "aliexternaltrackparam.cu"
 #include "aliv0vertexer.h"
 
+/*
 // http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliESDv0.cxx.html#pUv_1E
 __device__ __host__ v0_contructor(struct trackparam* t1, Int_t i1,
                                     struct trackparam* t2,  Int_t i2) {
@@ -75,6 +76,7 @@ __device__ __host__ v0_contructor(struct trackparam* t1, Int_t i1,
   for (Int_t i=0;i<4;i++){fCausality[i]=0;}
 
 }
+*/
 
 //NOTE: AliESDEvent event had to be replaced
 // Information this function needs
@@ -83,22 +85,28 @@ __device__ __host__ v0_contructor(struct trackparam* t1, Int_t i1,
 // - The magnetic field
 // - The primary vertex
 
-__global__ void Tracks2V0vertices_kernel(struct privertex *vtxT3D, 
-                                            struct trackparam *tracks, 
-                                            Int_t nentr, Double_t b) {
-    ;
-    //FIXME: when enabled, this call makes cuda very angry and causes a syntax error in the .ptx file
-    //Int_t nvrtx = Tracks2V0vertices(vtxT3D, tracks, nentr, b);
-}
-
 #define GetXv() fPosition[0]
 #define GetYv() fPosition[1]
 #define GetZv() fPosition[2]
+
+#define MAXTRACKS 4000
+__device__ Int_t neg[MAXTRACKS];
+__device__ Int_t pos[MAXTRACKS];
+__global__ void Tracks2V0vertices_kernel(struct privertex *vtxT3D, 
+                                            struct trackparam *tracks, 
+                                            Int_t nentr, Double_t b) {
+   // ;
+    //FIXME: when enabled, this call makes cuda very angry and causes a syntax error in the .ptx file
+    //Int_t nvrtx = Tracks2V0vertices(vtxT3D, tracks, nentr, b);
+// }
+
+
+/*
 // http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliV0vertexer.cxx.html#gwutwE
 __device__ __host__ Int_t Tracks2V0vertices(struct privertex *vtxT3D, 
                                             struct trackparam *tracks, 
                                             Int_t nentr, Double_t b) {
-
+*/
     //TODO: put this outside function
     // http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliV0vertexer.cxx.html#27
     Double_t fgChi2max=33.; //max chi2
@@ -122,10 +130,7 @@ __device__ __host__ Int_t Tracks2V0vertices(struct privertex *vtxT3D,
    Double_t yPrimaryVertex=vtxT3D->GetYv();
    Double_t zPrimaryVertex=vtxT3D->GetZv();
 
-   if (nentr<2) return 0; 
-
-   Int_t neg[nentr];
-   Int_t pos[nentr];
+//  if (nentr<2) return 0; 
 
    Int_t nneg=0, npos=0, nvtx=0;
 
@@ -183,6 +188,7 @@ __device__ __host__ Int_t Tracks2V0vertices(struct privertex *vtxT3D,
 
          PropagateTo(&nt,xn,b); PropagateTo(&pt,xp,b);
 
+/*
          struct v0vertex* vertex = v0vertex_contructor(nt, nidx, pt, pidx);
          if (GetChi2V0(vertex) > fChi2max) continue;
 	 
@@ -194,13 +200,12 @@ __device__ __host__ Int_t Tracks2V0vertices(struct privertex *vtxT3D,
 
           //TODO: find and implement an equivalent way to do this. Just use an array?
          //event->AddV0(&vertex); http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliESDEvent.cxx.html#qqk9g
-
+*/
          nvtx++;
       }
-
     }
 
 //    Info("Tracks2V0vertices","Number of reconstructed V0 vertices: %d",nvtx);
 
-    return nvtx;
+//   return nvtx;
 }

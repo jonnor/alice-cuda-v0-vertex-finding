@@ -81,15 +81,16 @@ int main()
     vtxT3d->fPosition[1] = 0.0;
     vtxT3d->fPosition[2] = 0.0;
 
-    //FIXME: should be pointer to struct trackparam instead??
     const int NTRACKS=2;
-    struct trackparam *tracks[NTRACKS];
-    tracks[0] = tp;
-    tracks[1] = tp2;
+    struct trackparam *tracks;
+    tracks = (struct trackparam*)malloc(sizeof(struct trackparam)*NTRACKS);
+    tracks[0] = *tp;
+    tracks[1] = *tp2;
 
     printf("Tracks2V0vertices\n");
-    Tracks2V0vertices(vtxT3d, *tracks, NTRACKS, b);
-
+//    Tracks2V0vertices(vtxT3d, tracks, NTRACKS, b);
+    Tracks2V0vertices_kernel<<<1,1>>>(vtxT3d, tracks, NTRACKS, b);
+    cudaThreadSynchronize();
     // Cleanup
     free(tp); free(hp); free(tp2); free(vtxT3d);
 

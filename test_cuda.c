@@ -9,15 +9,37 @@
 #include "aliexternaltrackparam.cu"
 #include "aliv0vertexer.cu"
 
-int main()
+const int TRACK_SIZE = sizeof(struct trackparam);
+const int HELIX_SIZE = sizeof(Double_t)*6;
+const int VERTEX_SIZE = sizeof(struct privertex);
+
+Int_t cuda_v0_vertexer(struct privertex* vtx, struct trackparam* tracks, 
+                        Int_t ntrks, Double_t b) {
+
+    // Declare, allocate and copy over device data
+    struct trackparam* tracks_d;
+    struct privertex* vtx_d;
+    cudaMalloc((void**)&vtx_d, VERTEX_SIZE);
+    cudaMalloc((void**)&tracks_d, TRACK_SIZE*ntrks);
+    cudaMemcpy(tracks_d, tracks, TRACK_SIZE*ntrks, cudaMemcpyHostToDevice);
+    cudaMemcpy(vtx_d, vtx, VERTEX_SIZE, cudaMemcpyHostToDevice);
+
+    // Execute
+    Tracks2V0vertices_kernel<<<1,1>>>(vtx_d, tracks_d, ntrks, b);
+    cudaThreadSynchronize();
+
+    // Copy data back and clean up
+    cudaMemcpy(vtx, vtx_d, VERTEX_SIZE, cudaMemcpyDeviceToHost);
+    cudaFree(vtx_d); cudaFree(tracks_d);
+
+    return 0;
+}
+
+int test()
 {
 
     Double_t b = -5.00668;
-    const int TRACK_SIZE = sizeof(struct trackparam);
-    const int HELIX_SIZE = sizeof(Double_t)*6;
-
     struct trackparam *tp;
-
     Double_t *hp;
 
     // Allocate memory
@@ -89,10 +111,17 @@ int main()
 
     printf("Tracks2V0vertices\n");
 //    Tracks2V0vertices(vtxT3d, tracks, NTRACKS, b);
-    Tracks2V0vertices_kernel<<<1,1>>>(vtxT3d, tracks, NTRACKS, b);
-    cudaThreadSynchronize();
+//     Tracks2V0vertices_kernel<<<1,1>>>(vtxT3d, tracks, NTRACKS, b);
+//     cudaThreadSynchronize();
+
+    cuda_v0_vertexer(vtxT3d, tracks, NTRACKS, b);
+
     // Cleanup
     free(tp); free(hp); free(tp2); free(vtxT3d);
 
     return 1;
+}
+
+int main() {
+    return test();
 }

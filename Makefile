@@ -12,28 +12,23 @@ CUDEPS		:= \
 
 
 ### COMMON ###
-# Directories
+# Paths
 CUDASDK := /home/lbratrud/cudaWork
 CUDAPATH := /usr/local/cuda
-
-# Compilers
 NVCC := $(CUDAPATH)/bin/nvcc
 
-# Includes
-INCLUDES  += -I$(CUDAPATH)/include -I$(CUDASDK)/common/inc
-
-# Common flags
-COMMONFLAGS += $(INCLUDES)
-
 # Flags
+INCLUDES  += -I$(CUDAPATH)/include -I$(CUDASDK)/common/inc
+COMMONFLAGS += $(INCLUDES)
 NVCCFLAGS += $(COMMONFLAGS)
 
-# Set up object files
-OBJDIR := obj
-OBJS := $(patsubst %.cu, $(OBJDIR)/%.o,$(notdir $(CUFILES)))
-
-# Set up binary directory
+# Build dirs
 BINDIR := bin
+LIBDIR := lib
+OBJDIR := obj
+
+# Object files
+OBJS := $(patsubst %.cu, $(OBJDIR)/%.o,$(notdir $(CUFILES)))
 
 # Rules
 $(BINDIR)/$(EXECUTABLE): $(OBJS)
@@ -46,11 +41,10 @@ $(OBJDIR)/%.o: %.cu $(CUDEPS) makedirectories
 makedirectories:
 	@mkdir -p $(OBJDIR)
 	@mkdir -p $(BINDIR)
-	@echo bin/ created
-	@echo obj/ created
+	@mkdir -p $(LIBDIR)
 
 clean:
 	@rm -rf $(OBJDIR)
 	@rm -rf $(BINDIR)
-	@echo All clean
+	@rm -rf $(LIBDIR)
 

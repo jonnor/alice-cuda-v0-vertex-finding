@@ -16,23 +16,33 @@ const int VERTEX_SIZE = sizeof(struct privertex);
 Int_t cuda_v0_vertexer(struct privertex* vtx, struct trackparam* tracks, 
                         Int_t ntrks, Double_t b) {
 
+    // Host data
+    Int_t nv0s;
+
     // Declare, allocate and copy over device data
     struct trackparam* tracks_d;
     struct privertex* vtx_d;
+    Int_t *nv0s_d;
+
     cudaMalloc((void**)&vtx_d, VERTEX_SIZE);
     cudaMalloc((void**)&tracks_d, TRACK_SIZE*ntrks);
+    cudaMalloc((void**)&nv0s_d, sizeof(Int_t));
+
     cudaMemcpy(tracks_d, tracks, TRACK_SIZE*ntrks, cudaMemcpyHostToDevice);
     cudaMemcpy(vtx_d, vtx, VERTEX_SIZE, cudaMemcpyHostToDevice);
 
     // Execute
-    Tracks2V0vertices_kernel<<<1,1>>>(vtx_d, tracks_d, ntrks, b);
+    Tracks2V0vertices_kernel<<<1,1>>>(vtx_d, tracks_d, nv0s_d, ntrks, b);
     cudaThreadSynchronize();
 
     // Copy data back and clean up
     cudaMemcpy(vtx, vtx_d, VERTEX_SIZE, cudaMemcpyDeviceToHost);
     cudaFree(vtx_d); cudaFree(tracks_d);
 
-    return 0;
+    cudaMemcpy(&nv0s, nv0s_d, sizeof(Int_t), cudaMemcpyDeviceToHost);
+    cudaFree(nv0s_d);
+
+    return nv0s;
 }
 
 int test_cuda_v0_vertexer()

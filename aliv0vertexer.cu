@@ -94,6 +94,7 @@ __device__ Int_t neg[MAXTRACKS];
 __device__ Int_t pos[MAXTRACKS];
 __global__ void Tracks2V0vertices_kernel(struct privertex *vtxT3D, 
                                             struct trackparam *tracks, 
+                                            Int_t* nv0s_ptr, 
                                             Int_t nentr, Double_t b) {
    // ;
     //FIXME: when enabled, this call makes cuda very angry and causes a syntax error in the .ptx file
@@ -133,6 +134,7 @@ __device__ __host__ Int_t Tracks2V0vertices(struct privertex *vtxT3D,
 //  if (nentr<2) return 0; 
 
    Int_t nneg=0, npos=0, nvtx=0;
+   (*nv0s_ptr)=0;
 
    //Sorts all tracks that meet certain cuts into positive and negative
    Int_t i;
@@ -142,7 +144,6 @@ __device__ __host__ Int_t Tracks2V0vertices(struct privertex *vtxT3D,
 
 //      if ((status&AliESDtrack::kITSrefit)==0)
 //         if ((status&AliESDtrack::kTPCrefit)==0) continue;
-
      Double_t d=GetD(esdTrack,xPrimaryVertex,yPrimaryVertex,b);
      if (abs(d)<fDPmin) continue;
      if (abs(d)>fRmax) continue;
@@ -168,8 +169,8 @@ __device__ __host__ Int_t Tracks2V0vertices(struct privertex *vtxT3D,
          if ((xn+xp) > 2*fRmax) continue;
          if ((xn+xp) < 2*fRmin) continue;
 
-         // XXX: might need a cast instead, and should probably be copies
-         struct trackparam nt(*ntrk), pt(*ptrk); 
+         struct trackparam nt, pt;
+         nt=(*ntrk); pt=(*ptrk); 
          Bool_t corrected=kFALSE;
          if ((GetX(&nt) > 3.) && (xn < 3.)) {
 	   //correct for the beam pipe material
@@ -194,6 +195,8 @@ __device__ __host__ Int_t Tracks2V0vertices(struct privertex *vtxT3D,
 	 
 	 Float_t cpa=vertex.GetV0CosineOfPointingAngle(xPrimaryVertex,yPrimaryVertex,zPrimaryVertex);
 	 if (cpa < fCPAmin) continue;
+*/
+/*
 	 SetDcaV0Daughters(vertex,dca);
          SetV0CosineOfPointingAngle(vertex,cpa);
          ChangeMassHypothesis(vertex,kK0Short);
@@ -201,7 +204,7 @@ __device__ __host__ Int_t Tracks2V0vertices(struct privertex *vtxT3D,
           //TODO: find and implement an equivalent way to do this. Just use an array?
          //event->AddV0(&vertex); http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliESDEvent.cxx.html#qqk9g
 */
-         nvtx++;
+         (*nv0s_ptr)++;
       }
     }
 

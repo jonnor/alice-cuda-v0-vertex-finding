@@ -7,7 +7,7 @@
 #define cos cosf
 
 #define Float_t float
-#define Double_t float //XXX: currently misbehaves if using double
+#define Double_t double
 #define Int_t int
 #define Bool_t int
 

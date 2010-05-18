@@ -15,6 +15,7 @@ struct trackparam
 	Double_t fAlpha;
 	Double_t fX;
         Double_t fC[15];
+        ULong_t fFlags;
 };
 
 __device__ __host__ Double_t GetDCA(struct trackparam *tp1, struct trackparam *tp2,

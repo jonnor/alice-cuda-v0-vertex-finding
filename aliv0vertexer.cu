@@ -160,10 +160,9 @@ __device__ __host__ Int_t Tracks2V0vertices(struct privertex *vtxT3D,
    Int_t i;
    for (i=0; i<nentr; i++) {
      struct trackparam *esdTrack=&tracks[i]; // AliESDtrack *esdTrack=event->GetTrack(i);
-//     ULong_t status=esdTrack->GetStatus();
-
-//      if ((status&AliESDtrack::kITSrefit)==0)
-//         if ((status&AliESDtrack::kTPCrefit)==0) continue;
+    ULong_t status=esdTrack->fFlags;
+     if ((status&kITSrefit)==0)
+        if ((status&kTPCrefit)==0) continue;
      Double_t d=GetD(esdTrack,xPrimaryVertex,yPrimaryVertex,b);
      if (abs(d)<fDPmin) continue;
      if (abs(d)>fRmax) continue;
@@ -209,11 +208,11 @@ __device__ __host__ Int_t Tracks2V0vertices(struct privertex *vtxT3D,
 
          PropagateTo(&nt,xn,b); PropagateTo(&pt,xp,b);
 
-
          struct v0vertex* vertex = v0vertex_contructor(&nt, nidx, &pt, pidx);
          if (GetChi2V0(vertex) > fChi2max) continue;
 	 
-	 Float_t cpa=GetV0CosineOfPointingAngle(vertex, xPrimaryVertex,yPrimaryVertex,zPrimaryVertex);
+	 Float_t cpa=GetV0CosineOfPointingAngle(vertex, 
+                            xPrimaryVertex,yPrimaryVertex,zPrimaryVertex);
 	 if (cpa < fCPAmin) continue;
 
 /*

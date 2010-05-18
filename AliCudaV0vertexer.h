@@ -13,6 +13,7 @@ struct trackparam
 	Double_t fAlpha;
 	Double_t fX;
         Double_t fC[15];
+        ULong_t fFlags;
 };
 
 // Datastructure for v0 secondary vertices

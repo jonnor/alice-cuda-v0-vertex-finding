@@ -1,5 +1,5 @@
 
-#include "common.h"
+#include "AliCudaDefs.h"
 #include "aliexternaltrackparam.h"
 
 // http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliExternalTrackParam.cxx.html#1175

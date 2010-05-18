@@ -1,5 +1,5 @@
 
-#include "common.h"
+#include "AliCudaDefs.h"
 //#include "aliexternaltrackparam.cu"
 #include "aliv0vertexer.h"
 

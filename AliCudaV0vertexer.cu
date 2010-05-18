@@ -5,7 +5,7 @@
 
 #include <cuda.h>
 
-#include "common.h"
+#include "AliCudaDefs.h"
 #include "aliexternaltrackparam.cu"
 #include "aliv0vertexer.cu"
 
@@ -35,7 +35,7 @@ Int_t cuda_v0_vertexer(struct privertex* vtx, struct trackparam* tracks,
     return 0;
 }
 
-int test()
+int test_cuda_v0_vertexer()
 {
 
     Double_t b = -5.00668;
@@ -123,5 +123,5 @@ int test()
 }
 
 int main() {
-    return test();
+    return test_cuda_v0_vertexer();
 }

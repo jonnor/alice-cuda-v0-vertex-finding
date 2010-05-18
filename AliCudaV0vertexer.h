@@ -38,4 +38,4 @@ struct privertex {
 Int_t cuda_v0_vertexer(struct privertex* vtx, struct trackparam* tracks, 
                         Int_t ntrks, Double_t b);
 
-int test();
+int test_cuda_v0_vertexer();

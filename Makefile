@@ -1,12 +1,13 @@
 # Name of your binary
-EXECUTABLE	:= test_cuda
+EXECUTABLE	:= alicudav0vertexer
+SOLIB := libcudav0vertexer.so
 # Device sources (.cu)
 CUFILES		:= \
-	test_cuda.cu \
+	AliCudaV0vertexer.cu \
 
 # Headers
 CUDEPS		:= \
-	common.h \
+	AliCudaDefs.h \
 	aliexternaltrackparam.cu \
 	aliv0vertexer.cu
 
@@ -21,6 +22,7 @@ NVCC := $(CUDAPATH)/bin/nvcc
 INCLUDES  += -I$(CUDAPATH)/include -I$(CUDASDK)/common/inc
 COMMONFLAGS += $(INCLUDES)
 NVCCFLAGS += $(COMMONFLAGS)
+NVCCFLAGS += -Xcompiler -fPIC
 
 # Build dirs
 BINDIR := bin
@@ -31,6 +33,9 @@ OBJDIR := obj
 OBJS := $(patsubst %.cu, $(OBJDIR)/%.o,$(notdir $(CUFILES)))
 
 # Rules
+$(LIBDIR)/$(SOLIB): $(OBJS)
+	$(NVCC) $(NVCCFLAGS) -shared -o $@ $^
+
 $(BINDIR)/$(EXECUTABLE): $(OBJS)
 	$(NVCC) $(NVCCFLAGS) -o $@ $^
 

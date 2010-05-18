@@ -5,10 +5,12 @@
 
 // Datastructure for v0 secondary vertices
 struct v0vertex {
-    struct trackparam *fParamN;
-    struct trackparam *fParamP;
-    Int_t *fNidx;
-    Int_t *fPidx;
+    struct trackparam fParamN;
+    struct trackparam fParamP;
+    Int_t fNidx;
+    Int_t fPidx;
+    Double_t fNmom[3];
+    Double_t fPmom[3];
     Double_t fPos[3];
 
     Double_t fDcaV0Daughters;

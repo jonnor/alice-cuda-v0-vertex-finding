@@ -3,11 +3,52 @@
 //#include "aliexternaltrackparam.cu"
 #include "aliv0vertexer.h"
 
-/*
+// http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliESDv0.cxx.html#HTK9SE
+void __device__ __host__ GetPxPyPz(struct v0vertex* v0, Double_t &px, Double_t &py, Double_t &pz) {
+  //--------------------------------------------------------------------
+  // This function returns V0's momentum (global)
+  //--------------------------------------------------------------------
+  px=v0->fNmom[0]+v0->fPmom[0]; 
+  py=v0->fNmom[1]+v0->fPmom[1]; 
+  pz=v0->fNmom[2]+v0->fPmom[2]; 
+}
+
+// http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliESDv0.cxx.html#qIMmkE
+Float_t __device__ __host__ GetV0CosineOfPointingAngle(struct v0vertex* v0, 
+                Double_t refPointX, Double_t refPointY, Double_t refPointZ) {
+  // calculates the pointing angle of the V0 wrt a reference point
+
+  Double_t momV0[3]; //momentum of the V0
+  GetPxPyPz(v0, momV0[0],momV0[1],momV0[2]);
+
+  Double_t deltaPos[3]; //vector between the reference point and the V0 vertex
+  deltaPos[0] = v0->fPos[0] - refPointX;
+  deltaPos[1] = v0->fPos[1] - refPointY;
+  deltaPos[2] = v0->fPos[2] - refPointZ;
+
+  Double_t momV02    = momV0[0]*momV0[0] + momV0[1]*momV0[1] + momV0[2]*momV0[2];
+  Double_t deltaPos2 = deltaPos[0]*deltaPos[0] + deltaPos[1]*deltaPos[1] + deltaPos[2]*deltaPos[2];
+
+  Double_t cosinePointingAngle = (deltaPos[0]*momV0[0] +
+				  deltaPos[1]*momV0[1] +
+				  deltaPos[2]*momV0[2] ) / sqrt(momV02 * deltaPos2);
+  
+  return cosinePointingAngle;
+}
+
+// http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/AliESDv0.html#AliESDv0:GetChi2V0
+Double_t __device__ __host__ GetChi2V0(struct v0vertex* v0) {
+    return v0->fChi2V0;
+}
+
+#define fPos v0->fPos
+#define fNmom v0->fNmom
+#define fPmom v0->fPmom
 // http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliESDv0.cxx.html#pUv_1E
-__device__ __host__ v0_contructor(struct trackparam* t1, Int_t i1,
+struct v0vertex* __device__ __host__ v0vertex_contructor(struct trackparam* t1, Int_t i1,
                                     struct trackparam* t2,  Int_t i2) {
-    struct v0vertex v0;
+    struct v0vertex v0vtx;
+    struct v0vertex* v0 = &v0vtx;
     v0->fParamN = *t1;
     v0->fParamP = *t2;
     v0->fNidx = i1;
@@ -16,67 +57,47 @@ __device__ __host__ v0_contructor(struct trackparam* t1, Int_t i1,
     //TODO: find out how much of this is actually neccesary and implement. 
     //If we're gonna make this into a ordinary object on the CPU side, its 
     //probably just the dynamic/non-standard parts?
+/*
   fEffMass(TDatabasePDG::Instance()->GetParticle(kK0Short)->Mass()),
-  fDcaV0Daughters(0),
-  fChi2V0(0.),
-  fRr(0),
-  fDistSigma(0),
-  fChi2Before(0),
-  fChi2After(0),
-  fPointAngleFi(0),
-  fPointAngleTh(0),
-  fPointAngle(0),
+
   fPdgCode(kK0Short),
   fNidx(i1),
   fPidx(i2),
-  fStatus(0),
-  fNBefore(0),
-  fNAfter(0),
+
   fOnFlyStatus(kFALSE)
-{
-  //--------------------------------------------------------------------
-  // Main constructor  (K0s)
-  //--------------------------------------------------------------------
-
-  for (Int_t i=0; i<6; i++) {
-    fPosCov[i]= 0.;
-  }
-
+*/
   //Trivial estimation of the vertex parameters
-  Double_t alpha=t1.GetAlpha(), cs=cos(alpha), sn=sin(alpha);
+  Double_t alpha=t1->fAlpha, cs=cos(alpha), sn=sin(alpha);
   Double_t tmp[3];
-  t1.GetPxPyPz(tmp);
+  GetPxPyPz(t1, tmp);
   Double_t px1=tmp[0], py1=tmp[1], pz1=tmp[2];
-  t1.GetXYZ(tmp);
+  GetXYZ(t1, tmp);
   Double_t  x1=tmp[0],  y1=tmp[1],  z1=tmp[2];
   const Double_t ss=0.0005*0.0005;//a kind of a residual misalignment precision
-  Double_t sx1=sn*sn*t1.GetSigmaY2()+ss, sy1=cs*cs*t1.GetSigmaY2()+ss; 
+  Double_t sx1=sn*sn*t1->fC[0]+ss, sy1=cs*cs*t1->fC[0]+ss; 
 
 
-  alpha=t2.GetAlpha(); cs=TMath::Cos(alpha); sn=TMath::Sin(alpha);
-  t2.GetPxPyPz(tmp);
+  alpha=t2->fAlpha; cs=cos(alpha); sn=sin(alpha);
+  GetPxPyPz(t2, tmp);
   Double_t px2=tmp[0], py2=tmp[1], pz2=tmp[2];
-  t2.GetXYZ(tmp);
+  GetXYZ(t2, tmp);
   Double_t  x2=tmp[0],  y2=tmp[1],  z2=tmp[2];
-  Double_t sx2=sn*sn*t2.GetSigmaY2()+ss, sy2=cs*cs*t2.GetSigmaY2()+ss; 
+  Double_t sx2=sn*sn*t2->fC[0]+ss, sy2=cs*cs*t2->fC[0]+ss; 
     
-  Double_t sz1=t1.GetSigmaZ2(), sz2=t2.GetSigmaZ2();
+  Double_t sz1=t1->fC[2], sz2=t2->fC[2];
   Double_t wx1=sx2/(sx1+sx2), wx2=1.- wx1;
   Double_t wy1=sy2/(sy1+sy2), wy2=1.- wy1;
   Double_t wz1=sz2/(sz1+sz2), wz2=1.- wz1;
   fPos[0]=wx1*x1 + wx2*x2; fPos[1]=wy1*y1 + wy2*y2; fPos[2]=wz1*z1 + wz2*z2;
 
-  //fPos[0]=0.5*(x1+x2); fPos[1]=0.5*(y1+y2); fPos[2]=0.5*(z1+z2);
   fNmom[0]=px1; fNmom[1]=py1; fNmom[2]=pz1; 
   fPmom[0]=px2; fPmom[1]=py2; fPmom[2]=pz2;
 
-  for (Int_t i=0;i<6;i++){fClusters[0][i]=0; fClusters[1][i]=0;}
-  fNormDCAPrim[0]=fNormDCAPrim[1]=0;
-  for (Int_t i=0;i<3;i++){fAngle[i]=0;}
-  for (Int_t i=0;i<4;i++){fCausality[i]=0;}
-
+  return v0;
 }
-*/
+#undef fPos
+#undef fPmom
+#undef fNmom
 
 //NOTE: AliESDEvent event had to be replaced
 // Information this function needs
@@ -131,11 +152,10 @@ __device__ __host__ Int_t Tracks2V0vertices(struct privertex *vtxT3D,
    Double_t yPrimaryVertex=vtxT3D->GetYv();
    Double_t zPrimaryVertex=vtxT3D->GetZv();
 
-//  if (nentr<2) return 0; 
-
-   Int_t nneg=0, npos=0, nvtx=0;
    (*nv0s_ptr)=0;
+   if (nentr<2) return; 
 
+   Int_t nneg=0, npos=0;
    //Sorts all tracks that meet certain cuts into positive and negative
    Int_t i;
    for (i=0; i<nentr; i++) {
@@ -189,13 +209,13 @@ __device__ __host__ Int_t Tracks2V0vertices(struct privertex *vtxT3D,
 
          PropagateTo(&nt,xn,b); PropagateTo(&pt,xp,b);
 
-/*
-         struct v0vertex* vertex = v0vertex_contructor(nt, nidx, pt, pidx);
+
+         struct v0vertex* vertex = v0vertex_contructor(&nt, nidx, &pt, pidx);
          if (GetChi2V0(vertex) > fChi2max) continue;
 	 
-	 Float_t cpa=vertex.GetV0CosineOfPointingAngle(xPrimaryVertex,yPrimaryVertex,zPrimaryVertex);
+	 Float_t cpa=GetV0CosineOfPointingAngle(vertex, xPrimaryVertex,yPrimaryVertex,zPrimaryVertex);
 	 if (cpa < fCPAmin) continue;
-*/
+
 /*
 	 SetDcaV0Daughters(vertex,dca);
          SetV0CosineOfPointingAngle(vertex,cpa);
@@ -208,7 +228,4 @@ __device__ __host__ Int_t Tracks2V0vertices(struct privertex *vtxT3D,
       }
     }
 
-//    Info("Tracks2V0vertices","Number of reconstructed V0 vertices: %d",nvtx);
-
-//   return nvtx;
 }

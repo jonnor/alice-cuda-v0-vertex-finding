@@ -1,0 +1,76 @@
+--- STEER/AliV0vertexer.cxx.orig	2010-04-28 20:25:41.000000000 +0200
++++ STEER/AliV0vertexer.cxx	2010-05-12 19:28:05.000000000 +0200
+@@ -130,9 +130,59 @@
+    return nvtx;
+ }
+ 
++#include "TStopwatch.h"
++#include "AliCudaV0vertexer.h"
++struct trackparam* tracks_from_event(AliESDEvent *event, Int_t &ntrks) {
++    ntrks = event->GetNumberOfTracks();
++    struct trackparam* tracks;
++    tracks = (struct trackparam*)malloc(sizeof(struct trackparam)*ntrks);
++
++    // Fill in the data
++    for(Int_t i=0; i<ntrks; i++) {
++        struct trackparam* tp=&tracks[i];
++        AliESDtrack *esdTrack=event->GetTrack(i);
++
++        tp->fAlpha = esdTrack->GetAlpha();
++        esdTrack->GetExternalCovariance(tp->fC);
++        esdTrack->GetExternalParameters(tp->fX, tp->fP);
++    }
++    return tracks;
++}
+ 
+ 
++Int_t AliV0vertexer::Tracks2V0verticesCuda(AliESDEvent *event) {
+ 
++    TStopwatch stopWatch;
++    stopWatch.Start(); 
++    // Extract relevant data and convert to a cuda friendly format
++    Double_t b=event->GetMagneticField();
++
++    Double_t pos[3];
++    struct privertex* cuda_pvtx;
++    const AliESDVertex *priVertex = event->GetPrimaryVertex();
++    priVertex->GetXYZ(pos);
++    for(Int_t i=0; i<3; i++) cuda_pvtx->fPosition[i] = pos[i];
++     
++    Int_t ntrks;
++    struct trackparam* tracks = tracks_from_event(event, ntrks);
++
++    stopWatch.Stop();
++    stopWatch.Print("m");
++    stopWatch.Start();
++
++    // Do the actual vertexfinding
++    cuda_v0_vertexer(cuda_pvtx, tracks, ntrks, b);
++    free(tracks);
++ 
++    stopWatch.Stop();
++    stopWatch.Print("m");
++    // Put the data into the event
++    //add_v0s_to_event(event); //TODO: evaluate how to implement, and implement
++
++    //FIXME: just a dummy to satisfy the return value
++    Int_t nv0s;
++    return nv0s;
++}
+ 
+ 
+ 
+--- STEER/libSTEER.pkg.orig	2010-05-10 18:43:15.000000000 +0200
++++ STEER/libSTEER.pkg	2010-05-10 22:32:29.000000000 +0200
+@@ -86,6 +86,11 @@
+ EINCLUDE+= TPC
+ #endif
+ 
++# Our custom stuff
++EINCLUDE+=/home/jnordby/work/alice1
++ELIBS+=cudav0vertexer
++ELIBSDIR+=/home/jnordby/work/alice1/lib
++
+ EXPORT:=$(SRCS:.cxx=.h) AliConst.h AliCallf77.h AliRawDataHeaderSim.h
+ 
+ ifeq (win32gcc,$(ALICE_TARGET))

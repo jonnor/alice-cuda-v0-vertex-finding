@@ -35,7 +35,7 @@ struct v0vertex {
 // Datastructure for the primary vertex
 struct privertex {
     Double_t fPosition[3];
-    struct v0vertex fVertices[MAX_VERTICES];
+    struct v0vertex* fVertices[MAX_VERTICES];
 };
 
 Int_t cuda_v0_vertexer(struct privertex* vtx, struct trackparam* tracks, 

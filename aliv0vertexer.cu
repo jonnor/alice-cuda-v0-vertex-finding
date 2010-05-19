@@ -1,7 +1,4 @@
 
-#include "AliCudaDefs.h"
-//#include "aliexternaltrackparam.cu"
-#include "aliv0vertexer.h"
 
 // http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliESDv0.cxx.html#HTK9SE
 void __device__ __host__ GetPxPyPz(struct v0vertex* v0, Double_t &px, Double_t &py, Double_t &pz) {

@@ -6,6 +6,7 @@
 #include <cuda.h>
 
 #include "AliCudaDefs.h"
+#include "AliCudaV0vertexer.h"
 #include "aliexternaltrackparam.cu"
 #include "aliv0vertexer.cu"
 

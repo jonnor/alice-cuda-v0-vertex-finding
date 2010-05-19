@@ -17,24 +17,60 @@ const int VERTEX_SIZE = sizeof(struct privertex);
 Int_t cuda_v0_vertexer(struct privertex* vtx, struct trackparam* tracks, 
                         Int_t ntrks, Double_t b) {
 
+    if (ntrks < 2) return 0;
+
     // Host data
     Int_t nv0s;
 
-    // Declare, allocate and copy over device data
+    // Declare and allocate device data
     struct trackparam* tracks_d;
     struct privertex* vtx_d;
-    Int_t *nv0s_d;
-
     cudaMalloc((void**)&vtx_d, VERTEX_SIZE);
     cudaMalloc((void**)&tracks_d, TRACK_SIZE*ntrks);
+
+    Int_t *nv0s_d;
     cudaMalloc((void**)&nv0s_d, sizeof(Int_t));
 
+    Int_t *ptracks_d;
+    Int_t *ntracks_d;
+    cudaMalloc((void**)&ntracks_d, sizeof(Int_t)*ntrks);
+    cudaMalloc((void**)&ptracks_d, sizeof(Int_t)*ntrks);
+
+    Int_t *npos_d; Int_t *nneg_d;
+    cudaMalloc((void**)&npos_d, sizeof(Int_t));
+    cudaMalloc((void**)&nneg_d, sizeof(Int_t));
+    printf("Malloc DONE\n");
+
+    // Copy data to device
     cudaMemcpy(tracks_d, tracks, TRACK_SIZE*ntrks, cudaMemcpyHostToDevice);
     cudaMemcpy(vtx_d, vtx, VERTEX_SIZE, cudaMemcpyHostToDevice);
+    printf("Memcpy HostToDevice DONE\n");
 
     // Execute
-    Tracks2V0vertices_kernel<<<1,1>>>(vtx_d, tracks_d, nv0s_d, ntrks, b);
+    const Int_t warpsize = 32;
+    dim3  grid(ceil(ntrks/warpsize), 1, 1); // x,y,z
+    dim3  block(warpsize, 1, 1); // x,y,z
+
+    SortTracks_kernel<<<grid, block>>>(vtx_d, tracks_d, 
+                                        ptracks_d, ntracks_d, 
+                                        npos_d, nneg_d,
+                                        ntrks, b);
     cudaThreadSynchronize();
+    printf("SortTracks kernel execution DONE\n");
+
+
+    // DEBUG
+    Int_t npos, nneg;
+    cudaMemcpy(&npos, npos_d, sizeof(Int_t), cudaMemcpyDeviceToHost);
+    cudaMemcpy(&nneg, nneg_d, sizeof(Int_t), cudaMemcpyDeviceToHost);
+    printf("SortTracks: npos=%d, nneg=%d\n", npos, nneg);
+
+    Tracks2V0vertices_kernel<<<grid,block>>>(vtx_d, tracks_d,
+                                                ptracks_d, ntracks_d, 
+                                                npos_d, nneg_d,
+                                                nv0s_d, b);
+    cudaThreadSynchronize();
+    printf("Tracks2V0vertices kernel execution DONE\n");
 
     // Copy data back and clean up
     cudaMemcpy(vtx, vtx_d, VERTEX_SIZE, cudaMemcpyDeviceToHost);

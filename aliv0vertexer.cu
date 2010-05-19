@@ -107,52 +107,29 @@ struct v0vertex* __device__ __host__ v0vertex_contructor(struct trackparam* t1, 
 #define GetYv() fPosition[1]
 #define GetZv() fPosition[2]
 
-#define MAXTRACKS 4000
-__device__ Int_t neg[MAXTRACKS];
-__device__ Int_t pos[MAXTRACKS];
-__global__ void Tracks2V0vertices_kernel(struct privertex *vtxT3D, 
-                                            struct trackparam *tracks, 
-                                            Int_t* nv0s_ptr, 
-                                            Int_t nentr, Double_t b) {
-   // ;
-    //FIXME: when enabled, this call makes cuda very angry and causes a syntax error in the .ptx file
-    //Int_t nvrtx = Tracks2V0vertices(vtxT3D, tracks, nentr, b);
-// }
 
+// http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliV0vertexer.cxx.html#27
+// http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliV0vertexer.h.html#46
+#define fChi2max 33. //max chi2
+#define fDNmin 0.05  //min imp parameter for the 1st daughter
+#define fDPmin 0.05  //min imp parameter for the 2nd daughter
+#define fDCAmax 0.5  //max DCA between the daughter tracks
+#define fCPAmin 0.99 //min cosine of V0's pointing angle
+#define fRmin 0.2    //min radius of the fiducial volume
+#define fRmax 100.   //max radius of the fiducial volume
 
-/*
-// http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliV0vertexer.cxx.html#gwutwE
-__device__ __host__ Int_t Tracks2V0vertices(struct privertex *vtxT3D, 
-                                            struct trackparam *tracks, 
-                                            Int_t nentr, Double_t b) {
-*/
-    //TODO: put this outside function
-    // http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliV0vertexer.cxx.html#27
-    Double_t fgChi2max=33.; //max chi2
-    Double_t fgDNmin=0.05;  //min imp parameter for the 1st daughter
-    Double_t fgDPmin=0.05;  //min imp parameter for the 2nd daughter
-    Double_t fgDCAmax=0.5;  //max DCA between the daughter tracks
-    Double_t fgCPAmin=0.99; //min cosine of V0's pointing angle
-    Double_t fgRmin=0.2;    //min radius of the fiducial volume
-    Double_t fgRmax=100.;   //max radius of the fiducial volume
+__global__ void SortTracks_kernel(struct privertex *vtxT3D, 
+                                    struct trackparam *tracks, 
+                                    Int_t *pos, Int_t *neg, 
+                                    Int_t *npos_ptr, Int_t *nneg_ptr, 
+                                    Int_t nentr, Int_t b) {
 
-    // http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliV0vertexer.h.html#46
-    Double_t fChi2max = fgChi2max; 
-    Double_t fDNmin = fgDNmin;
-    Double_t fDPmin = fgDPmin;
-    Double_t fDCAmax = fgDCAmax;
-    Double_t fCPAmin = fgCPAmin;
-    Double_t fRmin = fgRmin;
-    Double_t fRmax = fgRmax;
-
+if ((blockIdx.x * blockDim.x + threadIdx.x) == 1) { 
    Double_t xPrimaryVertex=vtxT3D->GetXv();
    Double_t yPrimaryVertex=vtxT3D->GetYv();
    Double_t zPrimaryVertex=vtxT3D->GetZv();
 
-   (*nv0s_ptr)=0;
-   if (nentr<2) return; 
-
-   Int_t nneg=0, npos=0;
+   (*nneg_ptr)=0; (*npos_ptr)=0;
    //Sorts all tracks that meet certain cuts into positive and negative
    Int_t i;
    for (i=0; i<nentr; i++) {
@@ -164,18 +141,37 @@ __device__ __host__ Int_t Tracks2V0vertices(struct privertex *vtxT3D,
      if (abs(d)<fDPmin) continue;
      if (abs(d)>fRmax) continue;
 
-     if (GetSign(esdTrack) < 0.) neg[nneg++]=i;
-     else pos[npos++]=i;
+     if (GetSign(esdTrack) < 0.) neg[(*nneg_ptr)++]=i;
+     else pos[(*npos_ptr)++]=i;
    }
+}
 
+}
+
+
+__global__ void Tracks2V0vertices_kernel(struct privertex *vtxT3D, 
+                                            struct trackparam *tracks,
+                                            Int_t *pos, Int_t *neg,
+                                            Int_t *npos_ptr, Int_t *nneg_ptr, 
+                                            Int_t *nv0s_ptr, Double_t b) {
+
+if ((blockIdx.x * blockDim.x + threadIdx.x) == 1) { 
+   Double_t xPrimaryVertex=vtxT3D->GetXv();
+   Double_t yPrimaryVertex=vtxT3D->GetYv();
+   Double_t zPrimaryVertex=vtxT3D->GetZv();
+   
+   Int_t npos = *npos_ptr;
+   Int_t nneg = *nneg_ptr;
+   (*nv0s_ptr)=0;
+   Int_t i;
    //Tries to match negative tracks with positive to find v0s
    for (i=0; i<nneg; i++) {
       Int_t nidx=neg[i];
-      struct trackparam *ntrk=&tracks[nidx]; // AliESDtrack *ntrk=event->GetTrack(nidx);
+      struct trackparam *ntrk=&tracks[nidx];
 
       for (Int_t k=0; k<npos; k++) {
          Int_t pidx=pos[k];
-	 struct trackparam *ptrk=&tracks[pidx]; // AliESDtrack *ptrk=event->GetTrack(pidx);
+	 struct trackparam *ptrk=&tracks[pidx];
 
          if (abs(GetD(ntrk,xPrimaryVertex,yPrimaryVertex,b))<fDNmin)
 	   if (abs(GetD(ptrk,xPrimaryVertex,yPrimaryVertex,b))<fDNmin) continue;
@@ -223,5 +219,7 @@ __device__ __host__ Int_t Tracks2V0vertices(struct privertex *vtxT3D,
          (*nv0s_ptr)++;
       }
     }
+
+}
 
 }

@@ -23,6 +23,8 @@ INCLUDES  += -I$(CUDAPATH)/include -I$(CUDASDK)/common/inc
 COMMONFLAGS += $(INCLUDES)
 NVCCFLAGS += $(COMMONFLAGS)
 NVCCFLAGS += -Xcompiler -fPIC
+#NVCCFLAGS += -deviceemu
+NVCCFLAGS += -arch sm_13
 
 # Build dirs
 BINDIR := bin

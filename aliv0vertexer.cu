@@ -112,8 +112,8 @@ __device__ __host__ Int_t CompareTracks(struct trackparam* ntrk, struct trackpar
                                     Int_t nidx, Int_t pidx, Double_t b,
                                     Double_t xPrimaryVertex, Double_t yPrimaryVertex, Double_t zPrimaryVertex) {
 
-     if (abs(GetD(ntrk,xPrimaryVertex,yPrimaryVertex,b))<fDNmin)
-       if (abs(GetD(ptrk,xPrimaryVertex,yPrimaryVertex,b))<fDNmin) return 0;
+     if ( (abs(GetD(ntrk,xPrimaryVertex,yPrimaryVertex,b))<fDNmin) && 
+            (abs(GetD(ptrk,xPrimaryVertex,yPrimaryVertex,b))<fDNmin) ) return 0;
 
      Double_t xn, xp, dca=GetDCA(ntrk,ptrk,b,xn,xp);
      if (dca > fDCAmax) return 0;

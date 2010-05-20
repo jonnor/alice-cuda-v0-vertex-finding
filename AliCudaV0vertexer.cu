@@ -65,7 +65,7 @@ Int_t cuda_v0_vertexer(struct privertex* vtx, struct trackparam* tracks,
     cudaMemcpy(&nneg, nneg_d, sizeof(Int_t), cudaMemcpyDeviceToHost);
     printf("SortTracks: npos=%d, nneg=%d\n", npos, nneg);
 
-    Tracks2V0vertices_kernel<<<grid,block>>>(vtx_d, tracks_d,
+    Tracks2V0vertices_kernel<<<1,3*32>>>(vtx_d, tracks_d,
                                                 ptracks_d, ntracks_d, 
                                                 npos_d, nneg_d,
                                                 nv0s_d, b);

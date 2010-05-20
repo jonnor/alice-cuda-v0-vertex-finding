@@ -174,7 +174,6 @@ __global__ void Tracks2V0vertices_kernel(struct privertex *vtxT3D,
                                             Int_t *npos_ptr, Int_t *nneg_ptr, 
                                             Int_t *nv0s_ptr, Double_t b) {
 
-if ((blockIdx.x * blockDim.x + threadIdx.x) == 1) { 
    Double_t xPrimaryVertex=vtxT3D->GetXv();
    Double_t yPrimaryVertex=vtxT3D->GetYv();
    Double_t zPrimaryVertex=vtxT3D->GetZv();
@@ -183,15 +182,24 @@ if ((blockIdx.x * blockDim.x + threadIdx.x) == 1) {
    Int_t nneg = *nneg_ptr;
    (*nv0s_ptr)=0;
 
-   Int_t i;
+   Int_t id=(blockIdx.x * blockDim.x) + threadIdx.x;
    //Tries to match negative tracks with positive to find v0s
-   for (i=0; i<nneg; i++) {
-      Int_t nidx=neg[i];
+   if (id < nneg) {
+      Int_t nidx=neg[id];
       struct trackparam *ntrk=&tracks[nidx];
 
-      for (Int_t k=0; k<npos; k++) {
+      Int_t k;
+      for (k=0; k<npos; k++) {
          Int_t pidx=pos[k];
 	 struct trackparam *ptrk=&tracks[pidx];
+
+        if (CompareTracks(ntrk, ptrk, nidx, pidx, b, 
+            xPrimaryVertex, yPrimaryVertex, zPrimaryVertex)) atomicAdd(nv0s_ptr,1);
+      }
+    }
+
+
+}
 
 /*
 	 SetDcaV0Daughters(vertex,dca);
@@ -201,11 +209,3 @@ if ((blockIdx.x * blockDim.x + threadIdx.x) == 1) {
           //TODO: find and implement an equivalent way to do this. Just use an array?
          //event->AddV0(&vertex); http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliESDEvent.cxx.html#qqk9g
 */       
-        if (CompareTracks(ntrk, ptrk, nidx, pidx, b, 
-                            xPrimaryVertex, yPrimaryVertex, zPrimaryVertex)) (*nv0s_ptr)++;
-      }
-    }
-
-}
-
-}

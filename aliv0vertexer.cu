@@ -96,17 +96,6 @@ struct v0vertex* __device__ __host__ v0vertex_contructor(struct trackparam* t1, 
 #undef fPmom
 #undef fNmom
 
-//NOTE: AliESDEvent event had to be replaced
-// Information this function needs
-// - All the tracks
-// - The number of tracks
-// - The magnetic field
-// - The primary vertex
-
-#define GetXv() fPosition[0]
-#define GetYv() fPosition[1]
-#define GetZv() fPosition[2]
-
 
 // http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliV0vertexer.cxx.html#27
 // http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliV0vertexer.h.html#46
@@ -117,6 +106,47 @@ struct v0vertex* __device__ __host__ v0vertex_contructor(struct trackparam* t1, 
 #define fCPAmin 0.99 //min cosine of V0's pointing angle
 #define fRmin 0.2    //min radius of the fiducial volume
 #define fRmax 100.   //max radius of the fiducial volume
+
+
+__device__ __host__ Int_t CompareTracks(struct trackparam* ntrk, struct trackparam* ptrk, 
+                                    Int_t nidx, Int_t pidx, Double_t b,
+                                    Double_t xPrimaryVertex, Double_t yPrimaryVertex, Double_t zPrimaryVertex) {
+
+     if (abs(GetD(ntrk,xPrimaryVertex,yPrimaryVertex,b))<fDNmin)
+       if (abs(GetD(ptrk,xPrimaryVertex,yPrimaryVertex,b))<fDNmin) return 0;
+
+     Double_t xn, xp, dca=GetDCA(ntrk,ptrk,b,xn,xp);
+     if (dca > fDCAmax) return 0;
+     if ((xn+xp) > 2*fRmax) return 0;
+     if ((xn+xp) < 2*fRmin) return 0;
+
+     struct trackparam nt, pt;
+     nt=(*ntrk); pt=(*ptrk); 
+
+     if ( ((GetX(&nt) > 3.) && (xn < 3.)) || ((GetX(&pt) > 3.) && (xp < 3.)) ) {
+       //correct for the beam pipe material
+       dca=GetDCA(&nt,&pt,b,xn,xp);
+       if (dca > fDCAmax) return 0;
+       if ((xn+xp) > 2*fRmax) return 0;
+       if ((xn+xp) < 2*fRmin) return 0;
+     }
+
+     PropagateTo(&nt,xn,b); PropagateTo(&pt,xp,b);
+
+     struct v0vertex* vertex = v0vertex_contructor(&nt, nidx, &pt, pidx);
+     if (GetChi2V0(vertex) > fChi2max) return 0;
+ 
+     Float_t cpa=GetV0CosineOfPointingAngle(vertex, 
+                        xPrimaryVertex,yPrimaryVertex,zPrimaryVertex);
+     if (cpa < fCPAmin) return 0;
+
+    return 1; // This is a match
+}
+
+
+#define GetXv() fPosition[0]
+#define GetYv() fPosition[1]
+#define GetZv() fPosition[2]
 
 __global__ void SortTracks_kernel(struct privertex *vtxT3D, 
                                     struct trackparam *tracks, 
@@ -159,10 +189,11 @@ if ((blockIdx.x * blockDim.x + threadIdx.x) == 1) {
    Double_t xPrimaryVertex=vtxT3D->GetXv();
    Double_t yPrimaryVertex=vtxT3D->GetYv();
    Double_t zPrimaryVertex=vtxT3D->GetZv();
-   
+
    Int_t npos = *npos_ptr;
    Int_t nneg = *nneg_ptr;
    (*nv0s_ptr)=0;
+
    Int_t i;
    //Tries to match negative tracks with positive to find v0s
    for (i=0; i<nneg; i++) {
@@ -173,34 +204,6 @@ if ((blockIdx.x * blockDim.x + threadIdx.x) == 1) {
          Int_t pidx=pos[k];
 	 struct trackparam *ptrk=&tracks[pidx];
 
-         if (abs(GetD(ntrk,xPrimaryVertex,yPrimaryVertex,b))<fDNmin)
-	   if (abs(GetD(ptrk,xPrimaryVertex,yPrimaryVertex,b))<fDNmin) continue;
-
-         Double_t xn, xp, dca=GetDCA(ntrk,ptrk,b,xn,xp);
-         if (dca > fDCAmax) continue;
-         if ((xn+xp) > 2*fRmax) continue;
-         if ((xn+xp) < 2*fRmin) continue;
-
-         struct trackparam nt, pt;
-         nt=(*ntrk); pt=(*ptrk); 
-
-         if ( ((GetX(&nt) > 3.) && (xn < 3.)) || ((GetX(&pt) > 3.) && (xp < 3.)) ) {
-	   //correct for the beam pipe material
-	   dca=GetDCA(&nt,&pt,b,xn,xp);
-           if (dca > fDCAmax) continue;
-           if ((xn+xp) > 2*fRmax) continue;
-           if ((xn+xp) < 2*fRmin) continue;
-	 }
-
-         PropagateTo(&nt,xn,b); PropagateTo(&pt,xp,b);
-
-         struct v0vertex* vertex = v0vertex_contructor(&nt, nidx, &pt, pidx);
-         if (GetChi2V0(vertex) > fChi2max) continue;
-	 
-	 Float_t cpa=GetV0CosineOfPointingAngle(vertex, 
-                            xPrimaryVertex,yPrimaryVertex,zPrimaryVertex);
-	 if (cpa < fCPAmin) continue;
-
 /*
 	 SetDcaV0Daughters(vertex,dca);
          SetV0CosineOfPointingAngle(vertex,cpa);
@@ -208,8 +211,9 @@ if ((blockIdx.x * blockDim.x + threadIdx.x) == 1) {
 
           //TODO: find and implement an equivalent way to do this. Just use an array?
          //event->AddV0(&vertex); http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliESDEvent.cxx.html#qqk9g
-*/
-         (*nv0s_ptr)++;
+*/       
+        if (CompareTracks(ntrk, ptrk, nidx, pidx, b, 
+                            xPrimaryVertex, yPrimaryVertex, zPrimaryVertex)) (*nv0s_ptr)++;
       }
     }
 

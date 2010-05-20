@@ -183,16 +183,9 @@ if ((blockIdx.x * blockDim.x + threadIdx.x) == 1) {
 
          struct trackparam nt, pt;
          nt=(*ntrk); pt=(*ptrk); 
-         Bool_t corrected=kFALSE;
-         if ((GetX(&nt) > 3.) && (xn < 3.)) {
+
+         if ( ((GetX(&nt) > 3.) && (xn < 3.)) || ((GetX(&pt) > 3.) && (xp < 3.)) ) {
 	   //correct for the beam pipe material
-           corrected=kTRUE;
-         }
-         if ((GetX(&pt) > 3.) && (xp < 3.)) {
-	   //correct for the beam pipe material
-           corrected=kTRUE;
-         }
-         if (corrected) {
 	   dca=GetDCA(&nt,&pt,b,xn,xp);
            if (dca > fDCAmax) continue;
            if ((xn+xp) > 2*fRmax) continue;

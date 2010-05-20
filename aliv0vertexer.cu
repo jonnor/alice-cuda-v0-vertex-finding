@@ -121,12 +121,9 @@ __device__ __host__ Int_t CompareTracks(struct trackparam* ntrk, struct trackpar
      if ((xn+xp) > 2*fRmax) return 0;
      if ((xn+xp) < 2*fRmin) return 0;
 
-     struct trackparam nt, pt;
-     nt=(*ntrk); pt=(*ptrk); 
+     PropagateTo(ntrk,xn,b); PropagateTo(ptrk,xp,b);
 
-     PropagateTo(&nt,xn,b); PropagateTo(&pt,xp,b);
-
-     struct v0vertex* vertex = v0vertex_contructor(&nt, nidx, &pt, pidx);
+     struct v0vertex* vertex = v0vertex_contructor(ntrk, nidx, ptrk, pidx);
      if (GetChi2V0(vertex) > fChi2max) return 0;
  
      Float_t cpa=GetV0CosineOfPointingAngle(vertex, 

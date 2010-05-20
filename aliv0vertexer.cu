@@ -115,7 +115,8 @@ __device__ __host__ Int_t CompareTracks(struct trackparam* ntrk, struct trackpar
      if ( (abs(GetD(ntrk,xPrimaryVertex,yPrimaryVertex,b))<fDNmin) && 
             (abs(GetD(ptrk,xPrimaryVertex,yPrimaryVertex,b))<fDNmin) ) return 0;
 
-     Double_t xn, xp, dca=GetDCA(ntrk,ptrk,b,xn,xp);
+     Double_t xn, xp, dca;
+     dca=GetDCA(ntrk,ptrk,b,xn,xp);
      if (dca > fDCAmax) return 0;
      if ((xn+xp) > 2*fRmax) return 0;
      if ((xn+xp) < 2*fRmin) return 0;
@@ -125,7 +126,6 @@ __device__ __host__ Int_t CompareTracks(struct trackparam* ntrk, struct trackpar
 
      if ( ((GetX(&nt) > 3.) && (xn < 3.)) || ((GetX(&pt) > 3.) && (xp < 3.)) ) {
        //correct for the beam pipe material
-       dca=GetDCA(&nt,&pt,b,xn,xp);
        if (dca > fDCAmax) return 0;
        if ((xn+xp) > 2*fRmax) return 0;
        if ((xn+xp) < 2*fRmin) return 0;

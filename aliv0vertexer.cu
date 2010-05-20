@@ -124,13 +124,6 @@ __device__ __host__ Int_t CompareTracks(struct trackparam* ntrk, struct trackpar
      struct trackparam nt, pt;
      nt=(*ntrk); pt=(*ptrk); 
 
-     if ( ((GetX(&nt) > 3.) && (xn < 3.)) || ((GetX(&pt) > 3.) && (xp < 3.)) ) {
-       //correct for the beam pipe material
-       if (dca > fDCAmax) return 0;
-       if ((xn+xp) > 2*fRmax) return 0;
-       if ((xn+xp) < 2*fRmin) return 0;
-     }
-
      PropagateTo(&nt,xn,b); PropagateTo(&pt,xp,b);
 
      struct v0vertex* vertex = v0vertex_contructor(&nt, nidx, &pt, pidx);

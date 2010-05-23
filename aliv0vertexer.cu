@@ -180,10 +180,8 @@ __global__ void Tracks2V0vertices_kernel(struct privertex *vtxT3D,
    Double_t xPrimaryVertex=vtxT3D->GetXv();
    Double_t yPrimaryVertex=vtxT3D->GetYv();
    Double_t zPrimaryVertex=vtxT3D->GetZv();
-
    Int_t npos = *npos_ptr;
    Int_t nneg = *nneg_ptr;
-   (*nv0s_ptr)=0;
 
    Int_t id=(blockIdx.x * blockDim.x) + threadIdx.x;
    //Tries to match negative tracks with positive to find v0s

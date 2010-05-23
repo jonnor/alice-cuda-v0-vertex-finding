@@ -51,18 +51,6 @@ struct v0vertex* __device__ __host__ v0vertex_contructor(struct trackparam* t1, 
     v0->fNidx = i1;
     v0->fPidx = i2;
 
-    //TODO: find out how much of this is actually neccesary and implement. 
-    //If we're gonna make this into a ordinary object on the CPU side, its 
-    //probably just the dynamic/non-standard parts?
-/*
-  fEffMass(TDatabasePDG::Instance()->GetParticle(kK0Short)->Mass()),
-
-  fPdgCode(kK0Short),
-  fNidx(i1),
-  fPidx(i2),
-
-  fOnFlyStatus(kFALSE)
-*/
   //Trivial estimation of the vertex parameters
   Double_t alpha=t1->fAlpha, cs=cos(alpha), sn=sin(alpha);
   Double_t tmp[3];
@@ -199,14 +187,5 @@ __global__ void Tracks2V0vertices_kernel(struct privertex *vtxT3D,
       }
     }
 
-
 }
 
-/*
-	 SetDcaV0Daughters(vertex,dca);
-         SetV0CosineOfPointingAngle(vertex,cpa);
-         ChangeMassHypothesis(vertex,kK0Short);
-
-          //TODO: find and implement an equivalent way to do this. Just use an array?
-         //event->AddV0(&vertex); http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliESDEvent.cxx.html#qqk9g
-*/       

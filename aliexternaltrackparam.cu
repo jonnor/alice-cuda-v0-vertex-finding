@@ -1,3 +1,22 @@
+/* This file contains code derived from AliROOT, ported to the CUDA platform
+ * Part of a project that implements GPU based v0 vertex finding  
+ * http://ri-pro.hive.no/prosjekter/EN2010-01/ 
+ * Code at http://gitorious.org/cuda-alice-vertex-finding
+ */
+
+/**************************************************************************
+ * Copyright(c) 2010  Vestfold University College, All rights reserved.   *
+ *                                                                        *
+ * Authors: Jon Nordby, Lars Bratrud                                      *
+ *                                                                        *
+ * Permission to use, copy, modify and distribute this software and its   *
+ * documentation strictly for non-commercial purposes is hereby granted   *
+ * without fee, provided that the above copyright notice appears in all   *
+ * copies and that both the copyright notice and this permission notice   *
+ * appear in the supporting documentation. The authors make no claims     *
+ * about the suitability of this software for any purpose. It is          *
+ * provided "as is" without express or implied warranty.                  *
+ **************************************************************************/
 
 // Forward declaration
 __device__ __host__ Double_t GetDCA(struct trackparam *tp1, struct trackparam *tp2,

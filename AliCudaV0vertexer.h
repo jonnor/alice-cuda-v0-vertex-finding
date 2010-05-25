@@ -1,12 +1,24 @@
-// AliCudaV0vertexer.h
+/* This file is part of a project that implements GPU based 
+ * v0 vertex finding for use with AliROOT in ALICE
+ * http://ri-pro.hive.no/prosjekter/EN2010-01/
+ * Code at http://gitorious.org/cuda-alice-vertex-finding
+ */
+
+/**************************************************************************
+ * Copyright(c) 2010  Vestfold University College, All rights reserved.   *
+ *                                                                        *
+ * Authors: Jon Nordby, Lars Bratrud                                      *
+ *                                                                        *
+ * Permission to use, copy, modify and distribute this software and its   *
+ * documentation strictly for non-commercial purposes is hereby granted   *
+ * without fee, provided that the above copyright notice appears in all   *
+ * copies and that both the copyright notice and this permission notice   *
+ * appear in the supporting documentation. The authors make no claims     *
+ * about the suitability of this software for any purpose. It is          *
+ * provided "as is" without express or implied warranty.                  *
+ **************************************************************************/
 
 // http://aliceinfo.cern.ch/static/aliroot-new/html/roothtml/src/AliExternalTrackParam.h.html#178
-// We could also just use a simple array instead of the struct
-// Double_t trackparam[7]
-// When we start caring about multiple tracks, they can either be represented by
-// - An array of structs/arrays
-// - An array where the params are separated by a rowstride equal to number of tracks
-// The latter might perform better, but be less readable
 struct trackparam
 {
 	Double_t fP[5];

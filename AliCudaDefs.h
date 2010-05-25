@@ -1,3 +1,4 @@
+/* Contains definitions usually found in ROOT/AliROOT */
 
 #ifndef COMMON_H
 #define COMMON_H

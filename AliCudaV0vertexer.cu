@@ -1,3 +1,22 @@
+/* This file is part of a project that implements GPU based 
+ * v0 vertex finding for use with AliROOT in ALICE
+ * http://ri-pro.hive.no/prosjekter/EN2010-01/ 
+ * Code at http://gitorious.org/cuda-alice-vertex-finding
+ */
+
+/**************************************************************************
+ * Copyright(c) 2010  Vestfold University College, All rights reserved.   *
+ *                                                                        *
+ * Authors: Jon Nordby, Lars Bratrud                                      *
+ *                                                                        *
+ * Permission to use, copy, modify and distribute this software and its   *
+ * documentation strictly for non-commercial purposes is hereby granted   *
+ * without fee, provided that the above copyright notice appears in all   *
+ * copies and that both the copyright notice and this permission notice   *
+ * appear in the supporting documentation. The authors make no claims     *
+ * about the suitability of this software for any purpose. It is          *
+ * provided "as is" without express or implied warranty.                  *
+ **************************************************************************/
 
 #include <stdlib.h>
 #include <stdio.h>

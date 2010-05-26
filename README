@@ -1,0 +1,64 @@
+
+This software implements v0 vertex finding for use in the ALICE experiement
+
+This code is kept in a public git repository, at
+http://www.gitorious.org/cuda-alice-vertex-finding
+More information can be found at the homepage for the bachelor thesis that did the initial work 
+http://ri-pro.hive.no/prosjekter/EN2010-01
+and at the wiki
+http://huginn.hive.no/projects/Huginn/wiki/ProjectsPage/AliceVertexFinding
+
+== Usage ==
+The supplied Makefile builds a shared library ./lib/libcudav0vertexer.so
+This can then be linked against and used with AliROOT by patching it with
+"aliroot-integration.patch"
+Some paths in the patch and Makefile will need to be adapted 
+
+Code tested on GNU/Linux, with AliROOT 5.26 and CUDA v2.3, CUDA 1.3 compute capability
+
+== Current status ==
+EN2010-01 bachelor thesis work completed
+Code returns correct number of v0s, and is partially optimized
+Provides between 4-10 times better performance than the original CPU code
+Significantly better performance should be within reach, see below
+
+
+== IDEAS/TODO optimization and performance ==
+- Use constant memory for {x,y,z}primaryVertex
+Easy task, should improve performance somewhat due to caching
+
+- Better parallelization
+Get rid of the 1-1 mapping between number of threads and number of negative tracks
+and the for loop that loops over all positive tracks
+Let one thread compare X negative with Y positive tracks, where X is typically 1 and Y up to npos
+
+More flexible solution, which will utilize the GPU better
+Could potentially make the algorithm close to O(1) for small to medium number of tracks
+Should make it possible to make use of the shared memory, and for threads within a block
+to hide latencies for global access for eachother
+
+- Try to reduce the amount of per-thread local memory used
+Or otherwise convince the compiler to use registers for per-thread variables
+Should improve performance as registers are order-of-magnitudes faster than local memory
+
+- Change datastructure for tracks from array of structs to struct of arrays
+This should make it possible to coealsce memory fetches, which should 
+result in a big performance improvement. Requires changes throughout the code
+
+- Undiverge branches
+Try to let all threads follow the same computation path in CompareTracks()
+This could potentially be beneficial due to reducing divergent branches
+but can be deterimental because some threads are doing unneccesary computations
+
+- Single-precision, try to us floats
+This requires that data type conversion is performed in the aliroot integration
+Might not be possible, double precision might be required for some, or all
+computations
+  - When using floats, faster implementations of some 
+
+- Optimize SortTracks_kernel
+This only makes sense once the Tracks2V0vertices_kernel is optimized so much
+that it no longer takes up the majority of the execution time
+The challenge here is the data structure that it writes output to (and the next kernel
+uses as input). An atomic operation for incrementing the indice in the output array
+might be sufficient
